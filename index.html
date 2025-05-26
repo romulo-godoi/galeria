@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Registro de Campo</title>
+ <link rel="manifest" href="manifest.json">
+ <meta name="theme-color" content="#1c1c1e"> <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+ <meta name="apple-mobile-web-app-title" content="Registro Campo">
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+ <script type="module">
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+ import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+ const firebaseConfig = {apiKey: "AIzaSyAGyJ1lfp1mMZLx-HgkHMyuAvPhqIwSNMY",authDomain: "relatorio-5c367.firebaseapp.com",databaseURL: "https://relatorio-5c367-default-rtdb.firebaseio.com",projectId: "relatorio-5c367",storageBucket: "relatorio-5c367.appspot.com",messagingSenderId: "436993430558",appId: "1:436993430558:web:727af61e3d4649282c8a0f"};
+ let firebaseApp;
+ let db;
+ try {
+  if (!firebaseConfig.databaseURL || !firebaseConfig.databaseURL.startsWith("https://") || !firebaseConfig.databaseURL.endsWith(".firebaseio.com")) {
+  throw new Error("Formato inválido da databaseURL. Verifique a configuração.");
+  }
+  firebaseApp = initializeApp(firebaseConfig);
+  db = getDatabase(firebaseApp);
+  console.log("Firebase inicializado com sucesso.");
+ } catch (error) {
+  console.error("Erro ao inicializar Firebase:", error);
+  db = null;
+ }
+ (()=>{
+ const TAGS=["Casa em casa","Carrinho","Cartas","Testemunho informal","Outro"],DEF_TAG="Casa em casa",N_MAX=300,RV_N_MAX=500,H_LIM=3,MIN_H_FC=1,LSK={E:'pT_e_v5.1',P:'pT_p_v1.1',R:'pT_r_v1.1',S:'pT_s_v1.2',SD:'pT_uS_v1.0'},CNF_C=30,DB_RV_LIM=3,SEED_WORDS=['campo','relatorio','registro','atividade','planilha','nota','hora'], FETCH_INTERVAL = 30000;
+ let app,dbBox,cnfC,dbWHrs,dbPerc,dbMTot,dbFrcst,dbPlnDtC,dbPlnLst,recC,recF,recId,recDt,dtLbl,dispDt,chgDt,recHrs,recTag,recNts,recNtsLbl,svRec,plnC,plnF,plnId,plnDt,plnHrs,plnRepeat,svPln,plnLst,plnLstPh,mGoal,svGoal,stMHrs,stMPrg,stMPrgBar,stAvgHrs,stMDays,chrtSelLbl,chrtSel,mHrsChrtCtx,chrtTotHrs,histLst,histSrch,histLstPh,shwResLbl,confDlg,dlgMsg,dlgY,dlgN,css,txtC,txtM,ttBgC,chrtClrs=[];
+ let rvC,rvF,rvId,rvNm,rvDt,rvNts,svRv,rvLstC,rvLst,rvLstPh,dbRvSec,dbRvLst,plnSec;
+ let seedInfoIcon, chrtToggleBtn;
+ let recs=[],plns=[],rvs=[],sets={mGoal:70,gSet:!1};
+ let mHrsChrt=null,curEdId=null,curConfCb=null,dtInVis=!1;
+ let M_NMS=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],W_NMS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];let lastChkDt='',dtChkInt=null,cnfTo=null;
+ let userSeed = null;
+ let dataLoaded = false;
+ let periodicFetchInterval = null;
+ let isFetchingPeriodically = false;
+ let chartViewMode = 'monthly';
+ let seedPromptDlg, seedPromptMsg, seedInput, seedPromptOk, seedPromptCancel;
+ let seedChoiceDlg, seedChoiceMsg, seedChoiceYes, seedChoiceNo, seedChoiceCancel;
+ let infoDlg, infoDlgMsg, infoDlgOk;
+ let currentSeedPromptCb = null, currentSeedChoiceYesCb = null, currentSeedChoiceNoCb = null, currentSeedChoiceCancelCb = null;
+
+ function qs(s){return document.querySelector(s)}function qa(s){return document.querySelectorAll(s)}function gi(i){return document.getElementById(i)}
+ function sel(){app=gi('app');dbBox=gi('db-box');cnfC=gi('cnf-ctnr');dbWHrs=gi('db-w-hrs');dbPerc=gi('db-perc');dbMTot=gi('db-m-tot');dbFrcst=gi('db-frcst');dbPlnDtC=gi('db-pln-dt');dbPlnLst=gi('db-pln-lst');recC=gi('rec-c');recF=gi('rec-f');recId=gi('rec-id');recDt=gi('rec-dt');dtLbl=gi('dt-lbl');dispDt=gi('disp-dt');chgDt=gi('chg-dt');recHrs=gi('rec-hrs');recTag=gi('rec-tag');recNts=gi('rec-nts');recNtsLbl=gi('rec-nts-lbl');svRec=gi('sv-rec');plnC=gi('pln-c');plnF=gi('pln-f');plnId=gi('pln-id');plnDt=gi('pln-dt');plnHrs=gi('pln-hrs');plnRepeat=gi('pln-repeat');svPln=gi('sv-pln');plnLst=gi('pln-lst');plnLstPh=plnLst?.querySelector('.ph');mGoal=gi('m-goal');svGoal=gi('sv-goal');stMHrs=gi('st-m-hrs');stMPrg=gi('st-m-prg');stMPrgBar=gi('st-m-prg-bar');stAvgHrs=gi('st-avg-hrs');stMDays=gi('st-m-days');chrtSelLbl=gi('chrt-sel-lbl');chrtSel=gi('chrt-sel');mHrsChrtCtx=gi('m-hrs-chrt')?.getContext('2d');chrtTotHrs=gi('chrt-tot-hrs');histLst=gi('hist-lst');histSrch=gi('hist-srch');histLstPh=histLst?.querySelector('.ph');shwResLbl=gi('shw-res-lbl');confDlg=gi('conf-dlg');dlgMsg=gi('dlg-msg');dlgY=gi('dlg-y');dlgN=gi('dlg-n');rvC=gi('rv-c');rvF=gi('rv-f');rvId=gi('rv-id');rvNm=gi('rv-nm');rvDt=gi('rv-dt');rvNts=gi('rv-nts');svRv=gi('sv-rv');rvLstC=gi('rv-lst-ctnr');rvLst=gi('rv-lst');rvLstPh=rvLst?.querySelector('.ph');dbRvSec=gi('db-rv-sec');dbRvLst=gi('db-rv-lst');plnSec=qs('.pln-sec');seedInfoIcon=gi('seed-info-icon');chrtToggleBtn=gi('chrt-toggle-btn');seedPromptDlg=gi('seed-prompt-dlg');seedPromptMsg=gi('seed-prompt-msg');seedInput=gi('seed-input');seedPromptOk=gi('seed-prompt-ok');seedPromptCancel=gi('seed-prompt-cancel');seedChoiceDlg=gi('seed-choice-dlg');seedChoiceMsg=gi('seed-choice-msg');seedChoiceYes=gi('seed-choice-yes');seedChoiceNo=gi('seed-choice-no');seedChoiceCancel=gi('seed-choice-cancel');infoDlg=gi('info-dlg');infoDlgMsg=gi('info-dlg-msg');infoDlgOk=gi('info-dlg-ok');try{css=getComputedStyle(document.body)}catch(e){css={}}txtC=css.getPropertyValue?.('--text-color')?.trim()||'#fff';txtM=css.getPropertyValue?.('--text-color-secondary')?.trim()||'#aaa';ttBgC=css.getPropertyValue?.('--card-bg')?.trim()||'#1c1c1e';chrtClrs=['#0A84FF','#30D158','#FF9F0A','#AF52DE','#5E5CE6','#FF69B4','#32CD32','#FFD700'].map((f,i)=>css.getPropertyValue?.(`--chart-color-${i+1}`)?.trim()||f)}
+ function dtStr(){const t=new Date;return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
+ function pDt(ds){if(!ds||!/^\d{4}-\d{2}-\d{2}$/.test(ds))return new Date(NaN);const[y,m,d]=ds.split('-').map(Number);return new Date(y,m-1,d)}
+ function fDtD(ds){if(!ds||!ds.includes('-'))return ds;try{const d=pDt(ds);if(isNaN(d.valueOf()))throw new Error("Invalid date");const o={day:'2-digit',month:'2-digit',year:'numeric'};return new Intl.DateTimeFormat('pt-BR',o).format(d)}catch(e){const[y,m,d]=ds.split('-');return`${d}/${m}/${y}`}}
+ function fMY(d){const m=String(d.getMonth()+1).padStart(2,'0'),y=d.getFullYear();return`${m}/${y}`}
+ function fSOW(d=new Date){const dt=new Date(d);dt.setHours(0,0,0,0);const dow=dt.getDay(),diff=dt.getDate()-dow,sow=new Date(dt.setDate(diff));return`${sow.getFullYear()}-${String(sow.getMonth()+1).padStart(2,'0')}-${String(sow.getDate()).padStart(2,'0')}`}
+ function dtAgo(m){const d=new Date;d.setHours(0,0,0,0);d.setMonth(d.getMonth()-m);return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+ function fMYExt(mys){if(!mys||!mys.includes('/')||!Array.isArray(M_NMS)||M_NMS.length<12)return mys;const[m,y]=mys.split('/'),idx=parseInt(m,10)-1;return(idx<0||idx>11)?mys:`${M_NMS[idx]} ${y}`}
+ function fHrsExt(hd,sh=!1){if(isNaN(hd)||hd<0)hd=0;const tm=Math.round(hd*60),h=Math.floor(tm/60),m=tm%60;let r='',hp='',mp='';if(h>0)hp=`${h}${sh?'h':' hora'+(h===1?'':'s')}`;if(m>0)mp=`${m}${sh?'m':' minuto'+(m===1?'':'s')}`;if(hp&&mp)r=`${hp}${sh?' ':' e '}${mp}`;else r=hp||mp;if(r==='')r=`0${sh?'h':' horas'}`;return r}
+ function fDecToTm(d){if(isNaN(d)||d<=0)return"";const t=Math.round(d*60),h=Math.floor(t/60),m=t%60;return`${h}:${String(m).padStart(2,'0')}`}
+ function pTmToDec(s){if(!s)return 0;const t=s.trim();if(!t)return 0;const cm=t.match(/^(\d{1,3}):(\d{1,2})$/);if(cm){const h=parseInt(cm[1],10),m=parseInt(cm[2],10);if(!isNaN(h)&&!isNaN(m)&&m>=0&&m<60&&h>=0)return h+(m/60)}const nm=t.match(/^(\d+)$/);if(nm){const str=nm[1],v=parseInt(str,10);if(isNaN(v))return NaN;if(str.length<=2){if(v<60)return v/60}if(str.length>=3&&str.length<=4){const hs=str.slice(0,-2),ms=str.slice(-2),h=parseInt(hs,10),m=parseInt(ms,10);if(!isNaN(h)&&!isNaN(m)&&m>=0&&m<60&&h>=0)return h+(m/60)}}return NaN}
+ function fRelDt(ds){if(!ds)return'';const td=new Date;td.setHours(0,0,0,0);const id=pDt(ds);if(isNaN(id.valueOf())||!Array.isArray(W_NMS)||W_NMS.length<7)return fDtD(ds);const tmr=new Date(td);tmr.setDate(td.getDate()+1);const wk=new Date(td);wk.setDate(td.getDate()+7);const it=id.getTime(),tdt=td.getTime(),tmrt=tmr.getTime();if(it===tdt)return'Hoje';if(it===tmrt)return'Amanhã';if(id>tmr&&id<wk)return`Próx. ${W_NMS[id.getDay()]}`;return fDtD(ds)}
+ function getDbRef(path = ''){if(!db||!userSeed)return null;return ref(db,`users/${userSeed}/${path}`)}
+ async function saveDataToFirebase(dataType){if(!db||!userSeed){console.warn('Firebase não disponível, salvamento online ignorado.');return}let dataToSave;switch(dataType){case'settings':dataToSave=sets;break;case'records':dataToSave=recs.reduce((obj,item)=>{if(item&&item.id)obj[item.id]=item;return obj},{});break;case'plans':dataToSave=plns.reduce((obj,item)=>{if(item&&item.id)obj[item.id]=item;return obj},{});break;case'revisits':dataToSave=rvs.reduce((obj,item)=>{if(item&&item.id)obj[item.id]=item;return obj},{});break;default:console.error('Tipo de dado inválido para salvar:',dataType);return}const dbRef=getDbRef(dataType);if(!dbRef)return;try{await set(dbRef,dataToSave);console.log(`Dados '${dataType}' salvos no Firebase.`)}catch(error){console.error(`Erro ao salvar ${dataType} no Firebase:`,error);fb(`Falha ao sincronizar ${dataType} com a nuvem.`,'danger')}}
+ async function fetchDataPeriodically(){if(!db||!userSeed||!dataLoaded||isFetchingPeriodically){return}isFetchingPeriodically=!0;console.log("Iniciando busca periódica de dados...");try{const dataTypes=['settings','records','plans','revisits'];let needsUiUpdate=!1;for(const type of dataTypes){const dbRef=getDbRef(type);if(!dbRef)continue;try{const snapshot=await get(dbRef);const firebaseData=snapshot.val();let dataChanged=!1;switch(type){case'settings':const oldSettings=JSON.stringify(sets);const newSettings={mGoal:70,gSet:!1,...(firebaseData||{})};if(isNaN(newSettings.mGoal)||newSettings.mGoal<=0)newSettings.mGoal=70;if(typeof newSettings.gSet!=='boolean')newSettings.gSet=!!newSettings.gSet;if(JSON.stringify(newSettings)!==oldSettings){sets=newSettings;if(mGoal)mGoal.value=sets.mGoal;dataChanged=!0}break;case'records':const oldRecs=JSON.stringify(recs);const newRecs=firebaseData?Object.values(firebaseData):[];newRecs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));if(JSON.stringify(newRecs)!==oldRecs){recs=newRecs;dataChanged=!0}break;case'plans':const oldPlns=JSON.stringify(plns);const newPlns=firebaseData?Object.values(firebaseData).map(p=>({...p,repeatWeekly:p.repeatWeekly||!1})):[];newPlns.sort((a,b)=>(a.date||'').localeCompare(b.date||''));if(JSON.stringify(newPlns)!==oldPlns){plns=newPlns;dataChanged=!0}break;case'revisits':const oldRvs=JSON.stringify(rvs);const newRvs=firebaseData?Object.values(firebaseData):[];newRvs.sort((a,b)=>{if(a.status!==b.status)return a.status==='pending'?-1:1;if(a.scheduledDate&&b.scheduledDate)return a.scheduledDate.localeCompare(b.scheduledDate);if(a.scheduledDate)return-1;if(b.scheduledDate)return 1;return(a.dateAdded||'').localeCompare(b.dateAdded||'')});if(JSON.stringify(newRvs)!==oldRvs){rvs=newRvs;dataChanged=!0}break}if(dataChanged){console.log(`Dados locais '${type}' atualizados pela busca periódica.`);needsUiUpdate=!0}}catch(error){console.error(`Erro ao buscar dados periódicos para '${type}':`,error)}}if(needsUiUpdate){console.log("Atualizando UI após busca periódica.");updAll()}else{console.log("Busca periódica concluída. Sem alterações detectadas.")}}catch(globalError){console.error("Erro geral na busca periódica:",globalError);fb("Erro ao verificar atualizações na nuvem.","danger")}finally{isFetchingPeriodically=!1}}
+ function startPeriodicFetch(){if(periodicFetchInterval){clearInterval(periodicFetchInterval)}if(db&&userSeed&&dataLoaded){console.log(`Iniciando busca periódica a cada ${FETCH_INTERVAL/1e3} segundos.`);periodicFetchInterval=setInterval(fetchDataPeriodically,FETCH_INTERVAL)}else{console.log("Não iniciando busca periódica (sem DB, seed ou dados não carregados).")}}
+ function stopPeriodicFetch(){if(periodicFetchInterval){console.log("Parando busca periódica.");clearInterval(periodicFetchInterval);periodicFetchInterval=null}}
+ async function loadDataFromFirebase(){if(!db||!userSeed){console.log("Firebase não disponível ou sem seed, carregando do localStorage.");loadDataFromLocalStorage();dataLoaded=!0;startPeriodicFetch();updAll();checkInitialGoal();return}console.log(`Carregando dados do Firebase para seed: ${userSeed}`);fb("Sincronizando dados...","info");try{const settingsRef=getDbRef('settings');const recordsRef=getDbRef('records');const plansRef=getDbRef('plans');const revisitsRef=getDbRef('revisits');if(!settingsRef||!recordsRef||!plansRef||!revisitsRef){throw new Error("Não foi possível criar referências do banco de dados.")}const[settingsSnap,recordsSnap,plansSnap,revisitsSnap]=await Promise.all([get(settingsRef),get(recordsRef),get(plansRef),get(revisitsRef)]);let loadedFromFirebase=!1;if(settingsSnap.exists()){const fbSettings=settingsSnap.val();sets={mGoal:70,gSet:!1,...(fbSettings||{})};if(isNaN(sets.mGoal)||sets.mGoal<=0)sets.mGoal=70;if(typeof sets.gSet!=='boolean')sets.gSet=!!sets.gSet;loadedFromFirebase=!0;console.log("Settings carregados do Firebase.")}else{console.log("Nenhum 'settings' encontrado no Firebase.")}if(recordsSnap.exists()){recs=Object.values(recordsSnap.val()||{});recs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));loadedFromFirebase=!0;console.log("Records carregados do Firebase.")}else{recs=[];console.log("Nenhum 'records' encontrado no Firebase.")}if(plansSnap.exists()){plns=Object.values(plansSnap.val()||{}).map(p=>({...p,repeatWeekly:p.repeatWeekly||!1}));plns.sort((a,b)=>(a.date||'').localeCompare(b.date||''));loadedFromFirebase=!0;console.log("Plans carregados do Firebase.")}else{plns=[];console.log("Nenhum 'plans' encontrado no Firebase.")}if(revisitsSnap.exists()){rvs=Object.values(revisitsSnap.val()||{});rvs.sort((a,b)=>{if(a.status!==b.status)return a.status==='pending'?-1:1;if(a.scheduledDate&&b.scheduledDate)return a.scheduledDate.localeCompare(b.scheduledDate);if(a.scheduledDate)return-1;if(b.scheduledDate)return 1;return(a.dateAdded||'').localeCompare(b.dateAdded||'')});loadedFromFirebase=!0;console.log("Revisits carregados do Firebase.")}else{rvs=[];console.log("Nenhum 'revisits' encontrado no Firebase.")}if(!loadedFromFirebase){console.log("Nenhum dado encontrado no Firebase, tentando localStorage...");loadDataFromLocalStorage();if(recs.length>0||plns.length>0||rvs.length>0||sets.gSet){console.log("Dados carregados do localStorage, salvando no Firebase...");await Promise.all([saveDataToFirebase('settings'),saveDataToFirebase('records'),saveDataToFirebase('plans'),saveDataToFirebase('revisits')]);fb("Dados locais sincronizados com a nuvem.","success")}}else{fb("Dados sincronizados!","success")}}catch(error){console.error("Erro ao carregar dados do Firebase:",error);fb("Falha ao carregar dados da nuvem. Usando dados locais.","danger");loadDataFromLocalStorage()}finally{dataLoaded=!0;if(mGoal)mGoal.value=sets.mGoal;startPeriodicFetch();updAll();checkInitialGoal()}}
+ function loadDataFromLocalStorage(){console.warn("Carregando dados do LocalStorage.");try{const sSR=localStorage.getItem(LSK.S);sets={mGoal:70,gSet:!1,...JSON.parse(sSR||'{}')};if(isNaN(sets.mGoal)||sets.mGoal<=0)sets.mGoal=70;if(typeof sets.gSet!=='boolean')sets.gSet=!1;let sER=localStorage.getItem(LSK.E);if(sER){try{const p=JSON.parse(sER);recs=Array.isArray(p)?p.map(e=>({...e,notes:e.notes?.substring(0,N_MAX)||'',tag:e.tag||DEF_TAG,id:e.id||Date.now()+Math.random()})):(()=>{throw new Error("E !arr")})()}catch(e){recs=[];localStorage.removeItem(LSK.E)}} else {recs=[]}const sP=localStorage.getItem(LSK.P);plns=sP?JSON.parse(sP):[];plns=plns.map(p=>({id:p.id||Date.now()+Math.random(),date:p.date,hours:(p.plannedHours!==undefined&&typeof p.plannedHours==='number')?p.plannedHours:p.hours,repeatWeekly:p.repeatWeekly||!1}));const sRV=localStorage.getItem(LSK.R);rvs=sRV?JSON.parse(sRV):[];rvs=rvs.map(rv=>({...rv,status:rv.status||'pending',notes:rv.notes?.substring(0,RV_N_MAX)||'',dateAdded:rv.dateAdded||dtStr(),scheduledDate:rv.scheduledDate||null,id:rv.id||Date.now()+Math.random()}));recs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));plns.sort((a,b)=>(a.date||'').localeCompare(b.date||''));rvs.sort((a,b)=>{if(a.status!==b.status)return a.status==='pending'?-1:1;if(a.scheduledDate&&b.scheduledDate)return a.scheduledDate.localeCompare(b.scheduledDate);if(a.scheduledDate)return-1;if(b.scheduledDate)return 1;return(a.dateAdded||'').localeCompare(b.dateAdded||'')});console.log("Dados carregados do localStorage:",{recs,plns,rvs,sets});}catch(e){console.error("Erro ao carregar dados do LocalStorage:",e);recs=[];plns=[];rvs=[];sets={mGoal:70,gSet:!1};fb('Erro ao ler dados locais.','danger');}}
+ function isValidSeed(seed){return/^[a-zA-Z]+-\d{3}$/.test(seed)}
+ function showSeedIcon(show=!0){if(seedInfoIcon){seedInfoIcon.style.display=show?'flex':'none'}}
+ function generateNewSeed(){const word=SEED_WORDS[Math.floor(Math.random()*SEED_WORDS.length)];const num=String(Math.floor(Math.random()*900)+100);const newSeed=`${word}-${num}`;userSeed=newSeed;try{localStorage.setItem(LSK.SD,userSeed);showSeedIcon();stopPeriodicFetch();showInfoDialog(`Sua nova seed de sincronização é: ${userSeed}\n\nGuarde esta seed em um local seguro! Ela será usada para acessar seus dados em outros dispositivos.`);recs=[];plns=[];rvs=[];sets={mGoal:70,gSet:!1};dataLoaded=!1;loadDataFromFirebase()}catch(e){console.error("Erro ao salvar nova seed no localStorage:",e);showInfoDialog("Não foi possível salvar sua nova seed. A sincronização pode não funcionar corretamente.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();}}
+ function askUserForSeed(){const handleInvalidSeed=(inputSeed)=>{const askToCreateNew=()=>{showSeedChoice("Deseja criar uma nova seed de sincronização?",()=>{generateNewSeed()},()=>{showInfoDialog("Ok, a sincronização não será ativada. Seus dados serão salvos apenas neste navegador.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();dataLoaded=!0;updAll();checkInitialGoal()},!0)};showSeedChoice(`Seed inválida "${inputSeed}".\n\nDeseja tentar digitar a seed novamente?`,()=>{askUserForSeed()},askToCreateNew,!0)};const handleCancelPrompt=()=>{showSeedChoice("Deseja criar uma nova seed de sincronização?",()=>{generateNewSeed()},()=>{showInfoDialog("Ok, a sincronização não será ativada. Seus dados serão salvos apenas neste navegador.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();dataLoaded=!0;updAll();checkInitialGoal()},!0)};showSeedPrompt("Digite sua seed de sincronização (formato: palavra-123):",(inputSeed)=>{if(inputSeed!==null&&isValidSeed(inputSeed)){userSeed=inputSeed.trim();try{localStorage.setItem(LSK.SD,userSeed);showSeedIcon();stopPeriodicFetch();recs=[];plns=[];rvs=[];sets={mGoal:70,gSet:!1};dataLoaded=!1;loadDataFromFirebase()}catch(e){console.error("Erro ao salvar seed fornecida no localStorage:",e);showInfoDialog("Não foi possível salvar a seed fornecida. A sincronização pode não funcionar.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();updAll();checkInitialGoal()}}else if(inputSeed!==null){handleInvalidSeed(inputSeed)}else{handleCancelPrompt()}})}
+ function handleSeed(){if(!db){console.warn("Firebase não inicializado, usando apenas localStorage.");showInfoDialog("A conexão com o banco de dados falhou. A sincronização online não está disponível. Seus dados serão salvos apenas neste navegador.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();dataLoaded=!0;updAll();checkInitialGoal();return}try{const storedSeed=localStorage.getItem(LSK.SD);if(storedSeed&&isValidSeed(storedSeed)){userSeed=storedSeed;console.log(`Seed encontrada: ${userSeed}`);showSeedIcon();loadDataFromFirebase()}else{showSeedIcon(!1);showSeedChoice("Você já possui uma seed de sincronização?",()=>{askUserForSeed()},()=>{generateNewSeed()},!1)}}catch(e){console.error("Erro ao acessar localStorage para seed:",e);showInfoDialog("Erro ao ler a configuração de sincronização. Usando dados locais.");userSeed=null;showSeedIcon(!1);stopPeriodicFetch();loadDataFromLocalStorage();dataLoaded=!0;updAll();checkInitialGoal();}}
+ function pGoal(){showSeedPrompt('Meta Mensal (Horas)',(inp)=>{if(inp===null){if(!sets.gSet){sets.gSet=!0;updAll();saveDataToFirebase('settings')}}else{const g=parseInt(inp,10);if(!isNaN(g)&&g>0){const changed=sets.mGoal!==g||!sets.gSet;sets.mGoal=g;sets.gSet=!0;if(mGoal)mGoal.value=g;updAll();saveDataToFirebase('settings');if(changed)fb("Meta definida!","success")}else{showInfoDialog("Valor inválido para meta.",pGoal)}}},sets.mGoal)}
+ function hGoalSv(){const g=parseInt(mGoal?.value,10);if(!isNaN(g)&&g>0){if(sets.mGoal!==g||!sets.gSet){sets.mGoal=g;sets.gSet=!0;updAll();saveDataToFirebase('settings');fb('Meta atualizada!','success')}else{fb('Meta já estava definida com este valor.','info')}}else{showInfoDialog('Valor inválido para meta.');if(mGoal)mGoal.value=sets.mGoal}}
+ function sDtVis(v){dtInVis=v;if(v){recDt?.classList.remove('hdn');dtLbl?.classList.add('vis-hdn');recDt?.focus()}else{recDt?.classList.add('hdn');dtLbl?.classList.remove('vis-hdn');if(dispDt)dispDt.textContent=(!recDt?.value||recDt.value===dtStr())?'Hoje':fDtD(recDt.value)}}
+ function tglC(c){if(!c)return;const ie=c.classList.contains('exp');c.classList.toggle('exp',!ie);const ic=c.querySelector('.tggl');if(ic)ic.textContent=!ie?'▲':'▼'}
+ function clrRecF(){recF?.reset();if(recId)recId.value='';if(recDt)recDt.value=dtStr();sDtVis(!1);if(recTag)recTag.value=DEF_TAG;if(recNts)recNts.value='';if(recHrs)recHrs.value='';if(svRec)svRec.textContent='Salvar';svRec?.classList.remove('editing');curEdId=null}
+ function clrPlnF(){plnF?.reset();if(plnId)plnId.value='';if(plnDt)plnDt.value='';if(plnHrs)plnHrs.value='';if(plnRepeat)plnRepeat.checked=!1;if(svPln)svPln.textContent='Salvar Plano';curEdId=null}
+ function clrRvF(){rvF?.reset();if(rvId)rvId.value='';if(rvNm)rvNm.value='';if(rvDt)rvDt.value='';if(rvNts)rvNts.value='';if(svRv)svRv.textContent='Adicionar Revisita';curEdId=null}
+ function hRecSub(ev){ev.preventDefault();const recIdVal=recId?.value;const isEditing=!!recIdVal;const id=isEditing?parseInt(recIdVal,10):Date.now()+Math.floor(Math.random()*100);const date=(dtInVis||(recDt?.value&&recDt.value!==dtStr()))?recDt.value:dtStr();const hours=pTmToDec(recHrs?.value);const tag=recTag?.value||DEF_TAG;const notes=recNts?.value.trim().substring(0,N_MAX);if(isNaN(hours)||hours<=0){showInfoDialog('Formato de tempo inválido.');recHrs?.focus();return}if(!date){showInfoDialog('Data inválida.');return}const entry={id,date,hours,tag,notes,type:'record'};const idx=recs.findIndex(e=>e&&e.id===id);if(idx>-1){recs[idx]=entry}else{recs.push(entry);recs.sort((a,b)=>(b.date||'').localeCompare(a.date||''))}updAll();clrRecF();fb(isEditing?'Registro atualizado!':'Registro salvo!','success');saveDataToFirebase('records')}
+ function edRec(id){const e=recs.find(e=>e&&e.id===id&&e.type!=='revisit_completed');if(e){if(!recC?.classList.contains('exp'))tglC(recC);curEdId=id;if(recId)recId.value=e.id;if(recDt)recDt.value=e.date;sDtVis(e.date!==dtStr());if(recHrs)recHrs.value=fDecToTm(e.hours);if(recTag)recTag.value=e.tag||DEF_TAG;if(recNts)recNts.value=e.notes||'';if(svRec){svRec.textContent='Atualizar';svRec.classList.add('editing')}recC?.scrollIntoView({behavior:'smooth',block:'start'});recHrs?.focus();}}
+ function delRec(id){shConf('Confirmar exclusão deste registro?',()=>{const i=recs.findIndex(e=>e&&e.id===id);if(i>-1){recs.splice(i,1);updAll();fb('Registro excluído.','info');if(curEdId===id)clrRecF();saveDataToFirebase('records');}})}
+ function hPlnSub(ev){ev.preventDefault();const plnIdVal=plnId?.value;const isEditing=!!plnIdVal;const id=isEditing?parseInt(plnIdVal,10):Date.now()+Math.floor(Math.random()*100);const date=plnDt?.value;const hours=pTmToDec(plnHrs?.value);const repeatWeekly=plnRepeat?.checked||!1;const tds=dtStr();if(!date||isNaN(hours)||hours<=0){showInfoDialog('Data ou horas inválidas.');plnHrs?.focus();return}if(date<tds){showInfoDialog('Data do plano não pode ser no passado.');plnDt?.focus();return}const plan={id,date,hours,repeatWeekly};const idx=plns.findIndex(p=>p&&p.id===id);if(idx>-1){plns[idx]=plan}else{plns.push(plan)}plns.sort((a,b)=>(a.date||'').localeCompare(b.date||''));updAll();clrPlnF();fb(isEditing?'Plano atualizado!':'Plano salvo!','success');saveDataToFirebase('plans')}
+ function donePln(id){const idx=plns.findIndex(p=>p&&p.id===id);if(idx===-1){fb('Plano não encontrado.','danger');return}const p=plns[idx];const tds=dtStr();const rd=tds<p.date?tds:p.date;const nt=`Registro automático do plano de ${fDtD(p.date)} (${fHrsExt(p.hours)})`;const entry={id:Date.now()+Math.floor(Math.random()*100),date:rd,hours:p.hours,tag:DEF_TAG,notes:nt,type:'record'};recs.push(entry);recs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));let nextPlanAdded=!1;if(p.repeatWeekly){try{const currentPlanDate=pDt(p.date);if(!isNaN(currentPlanDate.valueOf())){const nextWeekDate=new Date(currentPlanDate);nextWeekDate.setDate(currentPlanDate.getDate()+7);const nextDateStr=`${nextWeekDate.getFullYear()}-${String(nextWeekDate.getMonth()+1).padStart(2,'0')}-${String(nextWeekDate.getDate()).padStart(2,'0')}`;const newPlan={id:Date.now()+Math.floor(Math.random()*100)+1,date:nextDateStr,hours:p.hours,repeatWeekly:!0};plns.push(newPlan);nextPlanAdded=!0}}catch(e){console.error("Erro ao gerar próximo plano semanal:",e)}}plns.splice(idx,1);if(nextPlanAdded){plns.sort((a,b)=>(a.date||'').localeCompare(b.date||''))}updAll();fb('Plano marcado como feito!',(nextPlanAdded?'info':'success'));if(nextPlanAdded)fb('Novo plano semanal agendado!','success');Promise.all([saveDataToFirebase('records'),saveDataToFirebase('plans')])}
+ function delPln(id){shConf('Confirmar exclusão deste plano?',()=>{const initialLength=plns.length;plns=plns.filter(p=>p&&p.id!==id);if(plns.length<initialLength){updAll();fb('Plano excluído.','info');if(curEdId===id)clrPlnF();saveDataToFirebase('plans');}})}
+ function hRvSub(ev){ev.preventDefault();const rvIdVal=rvId?.value;const isEditing=!!rvIdVal;const id=isEditing?parseInt(rvIdVal,10):Date.now()+Math.floor(Math.random()*100);const name=rvNm?.value.trim();const sd=rvDt?.value||null;const notes=rvNts?.value.trim().substring(0,RV_N_MAX);const da=dtStr();if(!name){showInfoDialog('Nome da revisita é obrigatório.');rvNm?.focus();return}const revisit={id,name,notes,dateAdded:da,scheduledDate:sd,status:'pending',dateCompleted:null};const idx=rvs.findIndex(r=>r&&r.id===id);if(idx>-1){rvs[idx]=revisit}else{rvs.push(revisit)}rvs.sort((a,b)=>{if(a.status!==b.status)return a.status==='pending'?-1:1;if(a.scheduledDate&&b.scheduledDate)return a.scheduledDate.localeCompare(b.scheduledDate);if(a.scheduledDate)return-1;if(b.scheduledDate)return 1;return(a.dateAdded||'').localeCompare(b.dateAdded||'')});updAll();clrRvF();fb(isEditing?'Revisita atualizada!':'Revisita salva!','success');saveDataToFirebase('revisits')}
+ function doneRv(id){const idx=rvs.findIndex(r=>r&&r.id===id);if(idx===-1){fb('Revisita não encontrada.','danger');return}const r=rvs[idx];const cd=dtStr();const he={id:Date.now()+Math.floor(Math.random()*100),date:cd,hours:0,tag:'Revisita Concluída',notes:`Revisita concluída: ${r.name}${r.notes?`\nNotas originais: ${r.notes}`:''}`,type:'revisit_completed',revisitId:r.id};recs.push(he);recs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));rvs.splice(idx,1);updAll();fb('Revisita concluída!','success');Promise.all([saveDataToFirebase('records'),saveDataToFirebase('revisits')])}
+ function delRv(id){shConf('Confirmar exclusão desta revisita?',()=>{const initialLength=rvs.length;rvs=rvs.filter(r=>r&&r.id!==id);if(rvs.length<initialLength){updAll();fb('Revisita excluída.','info');if(curEdId===id)clrRvF();saveDataToFirebase('revisits');}})}
+ function shConf(m,cb){if(dlgMsg)dlgMsg.textContent=m;curConfCb=cb;confDlg?.classList.add('vis');dlgY?.focus()}
+ function hidConf(){confDlg?.classList.remove('vis');setTimeout(()=>{curConfCb=null},300)}
+ function showSeedPrompt(message,callback,defaultValue=''){if(!seedPromptDlg||!seedPromptMsg||!seedInput)return;seedPromptMsg.textContent=message;seedInput.value=defaultValue;currentSeedPromptCb=callback;seedPromptDlg.classList.add('vis');seedInput.focus()}
+ function hideSeedPrompt(){seedPromptDlg?.classList.remove('vis');currentSeedPromptCb=null}
+ function showSeedChoice(message,yesCallback,noCallback,showCancel=!1){if(!seedChoiceDlg||!seedChoiceMsg||!seedChoiceYes||!seedChoiceNo||!seedChoiceCancel)return;seedChoiceMsg.textContent=message;currentSeedChoiceYesCb=yesCallback;currentSeedChoiceNoCb=noCallback;currentSeedChoiceCancelCb=showCancel?(noCallback||(()=>{undefined})):null;seedChoiceCancel.style.display=showCancel?'inline-block':'none';seedChoiceDlg.classList.add('vis');seedChoiceYes?.focus()}
+ function hideSeedChoice(){seedChoiceDlg?.classList.remove('vis');currentSeedChoiceYesCb=null;currentSeedChoiceNoCb=null;currentSeedChoiceCancelCb=null}
+ function showInfoDialog(message,callback){if(!infoDlg||!infoDlgMsg||!infoDlgOk)return;infoDlgMsg.innerHTML=message.replace(/\n/g,'<br>');infoDlgOk.onclick=()=>{hideInfoDialog();if(typeof callback==='function')callback()};infoDlg.classList.add('vis');infoDlgOk?.focus()}
+ function hideInfoDialog(){infoDlg?.classList.remove('vis');if(infoDlgOk)infoDlgOk.onclick=null}
+ function fb(msg,type='info'){let d=document.createElement('div');d.textContent=msg;d.style.cssText=`position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;z-index:1100;box-shadow:0 4px 15px rgba(0,0,0,.2);font-size:.95em;transition:opacity .5s ease,bottom .5s ease;opacity:0;background-color:${type==='success'?'var(--success-color)':type==='danger'?'var(--danger-color)':'var(--primary-color)'};color:var(--text-color);text-align:center;max-width:90%`;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='1';d.style.bottom='30px'},10);setTimeout(()=>{d.style.opacity='0';d.style.bottom='10px'},3500);setTimeout(()=>{d.parentNode?.removeChild(d)},4e3)}
+ function crtCnf(){if(!cnfC)return;cnfC.innerHTML='';for(let i=0;i<CNF_C;i++){const c=document.createElement('div');c.classList.add('cnf');c.style.left=`${Math.random()*100}%`;c.style.backgroundColor=`var(--confetti-color-${Math.floor(Math.random()*6)+1})`;c.style.animationDelay=`${Math.random()*2}s`;const s=Math.random()*6+6;c.style.width=`${s}px`;c.style.height=`${s*(Math.random()*.5+.75)}px`;if(Math.random()>.7)c.style.borderRadius='50%';cnfC.appendChild(c)}if(cnfTo)clearTimeout(cnfTo);cnfTo=setTimeout(()=>{if(cnfC)cnfC.innerHTML=''},6e3)}
+ function remCnf(){if(cnfTo)clearTimeout(cnfTo);if(cnfC)cnfC.innerHTML=''}
+ function updDb(){const td=new Date(),cm=td.getMonth(),cy=td.getFullYear();let mh=0,wh=0;const sow=fSOW(td),tds=dtStr();(recs||[]).forEach(e=>{if(e&&e.type!=='revisit_completed'&&typeof e.hours==='number'){const ed=pDt(e.date);if(isNaN(ed.valueOf()))return;if(ed.getMonth()===cm&&ed.getFullYear()===cy)mh+=e.hours;if(e.date>=sow)wh+=e.hours}});if(dbWHrs)dbWHrs.textContent=fHrsExt(wh,!0);const goal=sets.mGoal||70;const perc=goal>0?Math.min(100,(mh/goal)*100):0;if(dbPerc)dbPerc.textContent=`${Math.round(perc)}%`;if(dbBox){dbBox.style.setProperty('--progress-percent',perc);if(perc>=100){if(!dbBox.classList.contains('met')){dbBox.classList.add('met');crtCnf()}}else{if(dbBox.classList.contains('met')){dbBox.classList.remove('met');remCnf()}}}if(dbMTot)dbMTot.innerHTML=`Total Mês: <strong>${fHrsExt(mh)}</strong>`;const ldomO=new Date(cy,cm+1,0),ldom=ldomO.getDate(),tdd=td.getDate();const remD=Math.max(0,ldom-tdd),remH=Math.max(0,goal-mh);let ft='';if(!sets.gSet)ft=`<span>Defina sua meta mensal...</span>`;else if(remH<=0)ft=`<span>Meta alcançada! Parabéns!</span>`;else if(remD<=0&&tdd===ldom)ft=`<span>Mês acabou. Faltaram ${fHrsExt(remH)}.</span>`;else if(remD<=0)ft=`<span>Faltam ${fHrsExt(remH)}.</span>`;else{let avgN=remH/remD,dTW=remD;if(avgN>0&&avgN<MIN_H_FC){dTW=Math.ceil(remH/MIN_H_FC);avgN=MIN_H_FC}const sug=`Tente <strong>${fHrsExt(avgN,!0)}</strong> por dia nos próximos ${dTW} dia${dTW===1?'':'s'}.`;ft=`<span>Faltam ${fHrsExt(remH)}.</span><span>${sug}</span>`}const fs=qs('#db-sum #db-frcst');if(fs)fs.innerHTML=ft;const pRvs=(rvs||[]).filter(r=>r&&r.status==='pending');pRvs.sort((a,b)=>{const afd=a.scheduledDate&&a.scheduledDate>=tds,bfd=b.scheduledDate&&b.scheduledDate>=tds;if(afd&&bfd)return a.scheduledDate.localeCompare(b.scheduledDate);if(afd)return-1;if(bfd)return 1;if(a.scheduledDate&&!b.scheduledDate)return-1;if(!a.scheduledDate&&b.scheduledDate)return 1;return(a.dateAdded||'').localeCompare(b.dateAdded||'')});const dRvs=pRvs.slice(0,DB_RV_LIM);if(dbRvLst)dbRvLst.innerHTML='';if(dRvs.length>0){dbRvSec?.classList.remove('hdn');dRvs.forEach(r=>{if(!r||!r.id)return;const li=document.createElement('li');li.dataset.id=r.id;let rt='';if(r.scheduledDate)rt=`<span class="rv-dt">${fRelDt(r.scheduledDate)}:</span> <span class="rv-nm">${r.name||'Sem nome'}</span>`;else rt=`<span class="rv-nm">${r.name||'Sem nome'}</span>`;li.innerHTML=rt;dbRvLst?.appendChild(li)})}else{dbRvSec?.classList.add('hdn')}const irv=!dbRvSec?.classList.contains('hdn');const ipv=!dbPlnDtC?.classList.contains('hdn');plnSec?.classList.toggle('hdn',!(irv||ipv))}
+ function updDbPlns(){const tds=dtStr();const upPlns=(plns||[]).filter(p=>p&&p.date>=tds).sort((a,b)=>(a.date||'').localeCompare(b.date||''));const dPlns=upPlns.slice(0,3);if(dbPlnLst)dbPlnLst.innerHTML='';if(dPlns.length>0){dbPlnDtC?.classList.remove('hdn');dPlns.forEach(p=>{if(!p||!p.id)return;const li=document.createElement('li');li.dataset.id=p.id;const repeatIndicator=p.repeatWeekly?'<span title="Repete Semanalmente" style="font-size:0.8em; margin-left: 5px; color: var(--primary-color); vertical-align: middle; cursor: default;">↻</span>':'';let pt=`<strong>${fRelDt(p.date)}:</strong> ${fHrsExt(p.hours||0,!0)}${repeatIndicator}`;li.innerHTML=pt;dbPlnLst?.appendChild(li)})}else{dbPlnDtC?.classList.add('hdn')}const irv=!dbRvSec?.classList.contains('hdn');const ipv=!dbPlnDtC?.classList.contains('hdn');plnSec?.classList.toggle('hdn',!(irv||ipv))}
+ function rendHist(){if(!histLst)return;histLst.innerHTML='';const st=histSrch?.value.trim().toLowerCase()||'';let res=[],lt='';const hs=st.length>0;const allH=[...(recs||[])];if(hs){res=allH.filter(e=>{if(!e)return!1;const ir=e.type==='revisit_completed';const tagI=ir?'Revisita Concluída':(e.tag||DEF_TAG);const tagT=tagI.toLowerCase();const fd=fDtD(e.date).toLowerCase();const hrsVal=ir?0:(e.hours||0);const hs=ir?'':hrsVal.toString().replace('.',',');const hrs=ir?'':Math.round(hrsVal).toString();const hf=ir?'':fHrsExt(hrsVal).toLowerCase();const nts=(e.notes||'').toLowerCase();return(fd.includes(st)||(!ir&&(hs.includes(st)||hrs.includes(st)||hf.includes(st)))||tagT.includes(st)||nts.includes(st)||(ir&&nts.includes(st))||tagI.toLowerCase().includes(st));});lt=`${res.length} resultado${res.length===1?'':'s'} para "${st}"`}else{const dl=dtAgo(H_LIM);res=allH.filter(e=>e&&e.date>=dl);if(allH.length===0)lt='Nenhum registro encontrado.';else if(res.length===0)lt=`Nenhum registro nos últimos ${H_LIM} meses.`;else lt=`Mostrando últimos ${H_LIM} meses.`}if(shwResLbl)shwResLbl.textContent=lt;if(res.length===0){let pk='Nenhum registro encontrado.';if(allH.length>0)pk=hs?'Nenhum resultado para a busca.':'Nenhum registro recente.';if(histLstPh){histLstPh.textContent=pk;histLstPh.classList.remove('hdn')}}else{histLstPh?.classList.add('hdn');res.forEach(e=>{if(!e||!e.id)return;const li=document.createElement('li');li.dataset.id=e.id;const ir=e.type==='revisit_completed';let dh='',ah='';if(ir){const rm=`<span class="rv-cmpl-mrk">CONCLUÍDA</span>`;const nl=(e.notes||'').split('\n');let nd=nl[0]||'';if(nl.length>1)nd+=' (Notas originais...)';const np=e.notes?`<span class="nts-prv">${nd}</span>`:`<span class="nts-prv" style="opacity:0.5;">Sem notas</span>`;dh=`<div class="ent-det">${rm}<strong>${fDtD(e.date)}:</strong> ${np}</div>`;ah='<div class="ent-act"></div>'}else{const ti=e.tag||DEF_TAG,tt=ti;const tb=`<span class="tag-bdg" ${ti===DEF_TAG?'style="opacity:0.6;"':''}>${tt}</span>`;const np=e.notes?`<span class="nts-prv">${e.notes.replace(/\n/g,' ')}</span>`:`<span class="nts-prv" style="opacity:0.5;">Sem notas</span>`;const hf=fHrsExt(e.hours||0);dh=`<div class="ent-det"><strong>${fDtD(e.date)}:</strong> <span class="hrs">${hf}</span> ${tb} ${np}</div>`;ah=`<div class="ent-act"><button class="edit-btn sec">Editar</button> <button class="delete-btn dang">Excluir</button></div>`}li.innerHTML=dh+ah;if(!ir){li.querySelector('.edit-btn')?.addEventListener('click',ev=>{ev.stopPropagation();edRec(e.id)});li.querySelector('.delete-btn')?.addEventListener('click',ev=>{ev.stopPropagation();delRec(e.id)})}histLst.appendChild(li)})}}
+ function rendPlns(){if(!plnLst)return;plnLst.innerHTML='';const allP=[...(plns||[])];if(allP.length===0){if(plnLstPh){plnLstPh.textContent='Nenhum planejamento registrado.';plnLstPh.classList.remove('hdn')}return}plnLstPh?.classList.add('hdn');allP.forEach(p=>{if(!p||!p.id)return;const li=document.createElement('li');li.dataset.id=p.id;const hd=fHrsExt(p.hours||0);const tds=dtStr();const ip=p.date<tds;const pds=ip?`<span style="opacity:0.7;margin-left:5px;">(passado)</span>`:'';const repeatIndicator=p.repeatWeekly?'<span title="Repete Semanalmente" style="font-size:0.8em; margin-left: 8px; color: var(--primary-color); vertical-align: middle; cursor: default;">↻</span>':'';li.innerHTML=`<div class="ent-det"><strong>${fDtD(p.date)} (${fRelDt(p.date)}):</strong> <span class="hrs">${hd}</span> ${pds}${repeatIndicator}</div><div class="pln-act"><button class="done-pln-btn succ">Feito</button> <button class="delete-pln-btn dang">Excluir</button></div>`;li.querySelector('.done-pln-btn')?.addEventListener('click',e=>{e.stopPropagation();donePln(p.id)});li.querySelector('.delete-pln-btn')?.addEventListener('click',e=>{e.stopPropagation();delPln(p.id)});plnLst.appendChild(li)})}
+ function rendRvs(){if(!rvLst)return;rvLst.innerHTML='';const pRvs=(rvs||[]).filter(r=>r&&r.status==='pending');if(pRvs.length===0){if(rvLstPh){rvLstPh.textContent='Nenhuma revisita pendente.';rvLstPh.classList.remove('hdn')}return}rvLstPh?.classList.add('hdn');pRvs.forEach(r=>{if(!r||!r.id)return;const li=document.createElement('li');li.dataset.id=r.id;const np=r.notes?`<span class="nts-prv">${r.notes.replace(/\n/g,' ')}</span>`:`<span class="nts-prv" style="opacity:0.5;">Sem notas</span>`;const sdh=r.scheduledDate?`<span class="rv-sch-dt">(Agendado p/ <strong>${fRelDt(r.scheduledDate)}</strong>)</span>`:'';li.innerHTML=`<div class="ent-det"><strong>${r.name||'Sem nome'}</strong>${sdh}${np}</div><div class="rv-act"><button class="complete-rv-btn succ">Concluir</button><button class="delete-rv-btn dang">Excluir</button></div>`;li.querySelector('.complete-rv-btn')?.addEventListener('click',e=>{e.stopPropagation();doneRv(r.id)});li.querySelector('.delete-rv-btn')?.addEventListener('click',e=>{e.stopPropagation();delRv(r.id)});rvLst.appendChild(li)})}
+ function updStats(){const td=new Date(),cm=td.getMonth(),cy=td.getFullYear();let thm=0;const ad=new Set();(recs||[]).filter(e=>e&&e.type!=='revisit_completed'&&typeof e.hours==='number').filter(e=>{const d=pDt(e.date);if(isNaN(d.valueOf()))return!1;return d.getMonth()===cm&&d.getFullYear()===cy}).forEach(e=>{thm+=e.hours;ad.add(e.date)});const goal=sets.mGoal||70;const pp=sets.gSet?(goal>0?Math.min(Math.round((thm/goal)*100),100):0):0;const dac=ad.size;const avgh=dac>0?(thm/dac):0;if(stMHrs)stMHrs.textContent=fHrsExt(thm);if(stMPrg)stMPrg.textContent=sets.gSet?`${pp}%`:'--%';if(stMPrgBar)stMPrgBar.style.width=`${pp}%`;if(stAvgHrs)stAvgHrs.textContent=fHrsExt(avgh);if(stMDays)stMDays.textContent=dac}
+ function popChrtSel(){if(!chrtSel||!chrtSelLbl)return;const currentVal=chrtSel.value;chrtSel.innerHTML='';if(chartViewMode==='monthly'){chrtSelLbl.textContent='Selecionar Mês:';const avM=new Set();(recs||[]).filter(e=>e&&e.type!=='revisit_completed').forEach(e=>{const dO=pDt(e.date);if(!isNaN(dO.valueOf()))avM.add(fMY(dO))});const sM=Array.from(avM).sort((a,b)=>{const[mA,yA]=a.split('/').map(Number),[mB,yB]=b.split('/').map(Number);return(yB-yA)||(mB-mA)});if(sM.length===0){const o=document.createElement('option');o.value='';o.textContent='Sem dados';chrtSel.append(o);chrtSel.disabled=!0;return}chrtSel.disabled=!1;const cms=fMY(new Date());const cmf=fMYExt(cms);let hcmd=!1;let dsov=!1;sM.forEach(myv=>{const o=document.createElement('option'),mf=fMYExt(myv);o.value=myv;o.textContent=mf||myv;if(myv===currentVal){o.selected=!0;dsov=!0}if(myv===cms)hcmd=!0;chrtSel.append(o)});if(!hcmd&&cmf&&Array.isArray(M_NMS)&&M_NMS.length>0){const o=document.createElement('option');o.value=cms;o.textContent=`${cmf} (Mês atual)`;chrtSel.insertBefore(o,chrtSel.firstChild);if(!dsov&&!chrtSel.querySelector('option[selected]'))o.selected=!0}if(!chrtSel.value&&chrtSel.options.length>0){chrtSel.options[0].selected=!0}}else{chrtSelLbl.textContent='Selecionar Ano:';const avY=new Set();(recs||[]).filter(e=>e&&e.type!=='revisit_completed').forEach(e=>{const dO=pDt(e.date);if(!isNaN(dO.valueOf()))avY.add(dO.getFullYear())});const sY=Array.from(avY).sort((a,b)=>b-a);if(sY.length===0){const o=document.createElement('option');o.value='';o.textContent='Sem dados';chrtSel.append(o);chrtSel.disabled=!0;return}chrtSel.disabled=!1;const cy=new Date().getFullYear();let hcyd=!1;let dsov=!1;sY.forEach(yv=>{const o=document.createElement('option');o.value=String(yv);o.textContent=String(yv);if(String(yv)===currentVal){o.selected=!0;dsov=!0}if(yv===cy)hcyd=!0;chrtSel.append(o)});if(!hcyd){const o=document.createElement('option');o.value=String(cy);o.textContent=`${cy} (Ano atual)`;chrtSel.insertBefore(o,chrtSel.firstChild);if(!dsov&&!chrtSel.querySelector('option[selected]'))o.selected=!0}if(!chrtSel.value&&chrtSel.options.length>0){chrtSel.options[0].selected=!0}}rendChrt(chrtSel.value)}
+ function calcYearlyAvgData(selYear){const year=parseInt(selYear,10);const efy=(recs||[]).filter(e=>e&&e.type!=='revisit_completed'&&typeof e.hours==='number').filter(e=>{const d=pDt(e.date);return!isNaN(d.valueOf())&&d.getFullYear()===year});if(efy.length===0)return null;let totalYearHours=0;const hoursByTag={};const activeMonths=new Set();efy.forEach(e=>{const d=pDt(e.date);if(isNaN(d.valueOf()))return;const month=d.getMonth();const tag=e.tag||DEF_TAG;const h=e.hours||0;totalYearHours+=h;hoursByTag[tag]=(hoursByTag[tag]||0)+h;activeMonths.add(month)});const activeMonthsCount=activeMonths.size;if(activeMonthsCount===0)return null;const avgHoursByTag={};for(const tag in hoursByTag){avgHoursByTag[tag]=hoursByTag[tag]/activeMonthsCount}const avgMonthlyTotal=totalYearHours/activeMonthsCount;const agd=Object.entries(avgHoursByTag).map(([t,h])=>({label:t,value:h}));agd.sort((a,b)=>b.value-a.value);const lbls=agd.map(i=>i.label);const vals=agd.map(i=>i.value);return{labels:lbls,data:vals,avgMonthlyTotal:avgMonthlyTotal}}
+ function rendChrt(selVal){if(mHrsChrt){mHrsChrt.destroy();mHrsChrt=null}if(!selVal||selVal===''){clrChrt('Selecione um período.');return}try{let chartData,chartTitle,tooltipLabelCallback,totalText;if(chartViewMode==='monthly'){const[sm,sy]=selVal.split('/').map(Number),mi=sm-1;const efm=(recs||[]).filter(e=>e&&e.type!=='revisit_completed'&&typeof e.hours==='number').filter(e=>{const d=pDt(e.date);if(isNaN(d.valueOf()))return!1;return d.getMonth()===mi&&d.getFullYear()===sy});if(efm.length===0){clrChrt(`Sem registros em ${fMYExt(selVal)}.`);return}let th=0;const hbt={};efm.forEach(e=>{const tn=e.tag||DEF_TAG,h=e.hours||0;th+=h;hbt[tn]=(hbt[tn]||0)+h});const agd=Object.entries(hbt).map(([t,h])=>({label:t,value:h}));agd.sort((a,b)=>b.value-a.value);const lbls=agd.map(i=>i.label);const vals=agd.map(i=>i.value);chartData={labels:lbls,data:vals};chartTitle='Distribuição Mensal por Tipo (%)';tooltipLabelCallback=ctx=>{const l=ctx.label||'',v=ctx.parsed||0,p=th>0?((v/th)*100).toFixed(1):0;return`${l}: ${fHrsExt(v)} (${p}%)`};totalText=`Total Mês: <strong>${fHrsExt(th)}</strong>`}else{const yearData=calcYearlyAvgData(selVal);if(!yearData){clrChrt(`Sem registros em ${selVal}.`);return}chartData={labels:yearData.labels,data:yearData.data};chartTitle=`Média Mensal por Tipo em ${selVal} (%)`;const totalAvg=yearData.avgMonthlyTotal;tooltipLabelCallback=ctx=>{const l=ctx.label||'',v=ctx.parsed||0,p=totalAvg>0?((v/totalAvg)*100).toFixed(1):0;return`${l}: ${fHrsExt(v)}/mês (${p}%)`};totalText=`Média Mensal: <strong>${fHrsExt(totalAvg)}</strong>`}if(chrtTotHrs)chrtTotHrs.innerHTML=totalText;const bcs=chartData.labels.map((_,i)=>chrtClrs[i%chrtClrs.length]);if(!mHrsChrtCtx)return;mHrsChrt=new Chart(mHrsChrtCtx,{type:'pie',data:{labels:chartData.labels,datasets:[{data:chartData.data,backgroundColor:bcs,borderColor:ttBgC||'#1c1c1e',borderWidth:1.5}]},options:{responsive:!0,maintainAspectRatio:!1,plugins:{title:{display:!0,text:chartTitle,color:txtM,font:{size:12,weight:'normal'},padding:{bottom:15}},tooltip:{backgroundColor:ttBgC,titleColor:txtC,bodyColor:txtC,displayColors:!0,padding:10,cornerRadius:6,callbacks:{label:tooltipLabelCallback}},legend:{position:'bottom',align:'center',labels:{color:txtM,boxWidth:12,padding:15}}}}})}catch(e){console.error("Erro ao renderizar gráfico:",e);clrChrt('Erro ao gerar gráfico.')}}
+ function clrChrt(msg){if(mHrsChrt){mHrsChrt.destroy();mHrsChrt=null}if(chrtTotHrs)chrtTotHrs.textContent='';const ctx=mHrsChrtCtx;if(ctx){ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=txtM;ctx.font=`14px ${css?.fontFamily||'sans-serif'}`;ctx.fillText(msg,ctx.canvas.width/2,ctx.canvas.height/2);ctx.restore()}}
+ function updAll(){try{console.log("Executando updAll()...");updDb();updDbPlns();updStats();rendHist();rendPlns();rendRvs();popChrtSel()}catch(err){console.error("Erro durante updAll:",err);if(err&&err.message)console.error("updAll message:",err.message);if(err&&err.stack)console.error("updAll stack:",err.stack);try{console.error("updAll erro (string):",JSON.stringify(err))}catch(e){}fb("Ocorreu um erro ao atualizar a interface.","danger")}}
+ function fTmIn(ev){const i=ev.target;let v=i.value,op=i.selectionStart,nv=v.replace(/[^\d]/g,'').substring(0,4),fv=nv;let ca=!1;if(nv.length===3){fv=`${nv.substring(0,1)}:${nv.substring(1)}`;if(v.indexOf(':')===-1&&op>=1)ca=!0}else if(nv.length>=4){fv=`${nv.substring(0,nv.length-2)}:${nv.substring(nv.length-2)}`;if(v.indexOf(':')===-1&&op>=fv.indexOf(':'))ca=!0}if(i.value!==fv){i.value=fv;let np=op;if(ca)np++;np=Math.min(np,fv.length);requestAnimationFrame(()=>{try{i.setSelectionRange(np,np)}catch(e){}})}}
+ function chkDtUpd(){const nds=dtStr();if(nds!==lastChkDt){lastChkDt=nds;updAll()}}
+ function checkInitialGoal(){if(dataLoaded&&!sets.gSet&&!qs('.dlg-bckdrp.vis')){console.log("Meta inicial não definida, solicitando ao usuário.");setTimeout(pGoal,600)}}
+ function toggleChartView(){chartViewMode=chartViewMode==='monthly'?'annual':'monthly';if(chrtToggleBtn){chrtToggleBtn.textContent=chartViewMode==='monthly'?'Ver Anual':'Ver Mensal'}popChrtSel()}
+ sel();
+ seedInfoIcon?.addEventListener('click',()=>{if(userSeed){showInfoDialog(`Sua seed de sincronização atual é:\n\n${userSeed}\n\nGuarde-a em local seguro.`)}else{showInfoDialog("A seed de sincronização ainda não foi definida ou não pôde ser carregada.")}});
+ if(recTag){recTag.innerHTML='';TAGS.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;recTag.appendChild(o)});recTag.value=DEF_TAG}
+ if(recNtsLbl)recNtsLbl.textContent=`Notas (Opcional - ${N_MAX} car.)`;if(recNts)recNts.maxLength=N_MAX;if(rvNts)rvNts.maxLength=RV_N_MAX;
+ if(recDt)recDt.value=dtStr();lastChkDt=dtStr();sDtVis(!1);clrRecF();clrPlnF();clrRvF();
+ qa('.crd').forEach(c=>{const se=(c.id==='rec-c');c.classList.toggle('exp',se);const ic=c.querySelector('.tggl');if(ic)ic.textContent=se?'▲':'▼'});
+ app?.addEventListener('click',e=>{const h=e.target.closest('.ch');if(h)tglC(h.closest('.crd'))});
+ qa('.ch').forEach(h=>{h.setAttribute('role','button');h.setAttribute('tabindex','0');h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tglC(h.closest('.crd'))}})});
+ chgDt?.addEventListener('click',()=>sDtVis(!0));
+ recHrs?.addEventListener('input',fTmIn);plnHrs?.addEventListener('input',fTmIn);
+ recHrs?.addEventListener('blur',e=>{const d=pTmToDec(e.target.value);if(!isNaN(d)&&d>=0)e.target.value=fDecToTm(d);else if(e.target.value.trim()!=='')e.target.value=''});
+ plnHrs?.addEventListener('blur',e=>{const d=pTmToDec(e.target.value);if(!isNaN(d)&&d>0)e.target.value=fDecToTm(d);else if(e.target.value.trim()!=='')e.target.value=''});
+ recNts?.addEventListener('input',e=>{if(e.target.value.length>N_MAX){e.target.value=e.target.value.substring(0,N_MAX);fb(`Limite de ${N_MAX} caracteres.`,'info')}});
+ rvNts?.addEventListener('input',e=>{if(e.target.value.length>RV_N_MAX){e.target.value=e.target.value.substring(0,RV_N_MAX);fb(`Limite de ${RV_N_MAX} caracteres.`,'info')}});
+ histSrch?.addEventListener('input',rendHist);
+ recF?.addEventListener('submit',hRecSub);plnF?.addEventListener('submit',hPlnSub);rvF?.addEventListener('submit',hRvSub);
+ gi('clr-pln-f')?.addEventListener('click',clrPlnF);
+ gi('clr-rv-f')?.addEventListener('click',clrRvF);
+ svGoal?.addEventListener('click',hGoalSv);
+ mGoal?.addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();hGoalSv();e.target.blur()}});
+ chrtSel?.addEventListener('change',e=>rendChrt(e.target.value));
+ chrtToggleBtn?.addEventListener('click',toggleChartView);
+ dlgY?.addEventListener('click',()=>{if(typeof curConfCb==='function')curConfCb();hidConf()});
+ dlgN?.addEventListener('click',hidConf);
+ confDlg?.addEventListener('click',e=>{if(e.target===confDlg)hidConf()});
+ seedPromptOk?.addEventListener('click',()=>{if(typeof currentSeedPromptCb==='function')currentSeedPromptCb(seedInput.value);hideSeedPrompt()});
+ seedPromptCancel?.addEventListener('click',()=>{if(typeof currentSeedPromptCb==='function')currentSeedPromptCb(null);hideSeedPrompt()});
+ seedPromptDlg?.addEventListener('click',e=>{if(e.target===seedPromptDlg){if(typeof currentSeedPromptCb==='function')currentSeedPromptCb(null);hideSeedPrompt()}});
+ seedChoiceYes?.addEventListener('click',()=>{if(typeof currentSeedChoiceYesCb==='function')currentSeedChoiceYesCb();hideSeedChoice()});
+ seedChoiceNo?.addEventListener('click',()=>{if(typeof currentSeedChoiceNoCb==='function')currentSeedChoiceNoCb();hideSeedChoice()});
+ seedChoiceCancel?.addEventListener('click',()=>{if(typeof currentSeedChoiceCancelCb==='function')currentSeedChoiceCancelCb();hideSeedChoice()});
+ seedChoiceDlg?.addEventListener('click',e=>{if(e.target===seedChoiceDlg){if(typeof currentSeedChoiceCancelCb==='function')currentSeedChoiceCancelCb();else if(typeof currentSeedChoiceNoCb==='function')currentSeedChoiceNoCb();hideSeedChoice()}});
+ infoDlgOk?.addEventListener('click',hideInfoDialog);
+ infoDlg?.addEventListener('click',e=>{if(e.target===infoDlg)hideInfoDialog()});
+ if(dtChkInt)clearInterval(dtChkInt);dtChkInt=setInterval(chkDtUpd,60*1e3);
+ handleSeed();
+ console.log("App init finalizado (v6.3 - Weekly Plan Repeat).");
+ })();
+ </script>
+ <script>
+ if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').then(registration=>{console.log('Service Worker registrado com sucesso:',registration.scope);registration.onupdatefound=()=>{const installingWorker=registration.installing;if(installingWorker==null){return}installingWorker.onstatechange=()=>{if(installingWorker.state==='installed'){if(navigator.serviceWorker.controller){console.log('Novo conteúdo disponível; por favor, recarregue.')}else{console.log('Conteúdo cacheado para uso offline.')}}}}}).catch(error=>{console.error('Falha ao registrar Service Worker:',error)})});navigator.serviceWorker.addEventListener('controllerchange',()=>{window.location.reload()})}
+ </script>
+ <style>
+ :root {
+  --primary-color: #3B82F6; /* Azul Apple-like */
+  --secondary-color: #111827; /* Fundo geral bem escuro */
+  --card-bg: #1F2937; /* Cinza escuro para cards/seções internas do dashboard */
+  --input-bg: #374151;
+  --text-color: #F3F4F6;
+  --text-color-secondary: rgba(229, 231, 235, .7);
+  --text-color-tertiary: rgba(209, 213, 219, .55);
+  --border-color: #4B5563; /* Cor para bordas sutis */
+  --separator-color: rgba(75, 85, 99, .6);
+  --danger-color: #EF4444;
+  --success-color: #10B981; /* Verde Apple-like */
+  --placeholder-color: rgba(209, 213, 219, .4);
+  --dialog-backdrop: rgba(0, 0, 0, .75);
+  --progress-track-color: var(--input-bg);
+  --progress-bar-color: var(--primary-color);
+  --chart-color-1: #3B82F6;
+  --chart-color-2: #10B981;
+  --chart-color-3: #F59E0B;
+  --chart-color-4: #8B5CF6;
+  --chart-color-5: #EC4899;
+  --chart-color-6: #6366F1;
+  --chart-color-7: #06B6D4;
+  --chart-color-8: #F472B6;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --border-radius: 10px;
+  --border-radius-large: 12px; /* Usado nas seções do dashboard */
+  --card-padding: 18px;
+  --outer-padding: 15px;
+  --transition-speed: .25s;
+  --transition-speed-fast: .15s;
+  --content-transition: max-height .3s ease-out, opacity .2s ease-out .05s, padding .3s ease-out, margin .3s ease-out;
+  --dashboard-border-thickness: 2px;
+  --progress-percent: 0;
+  --celebrate-color-1: #F59E0B;
+  --celebrate-color-2: #EC4899;
+  --celebrate-color-3: #10B981;
+  --celebrate-color-4: #3B82F6;
+  --celebrate-color-5: #8B5CF6;
+  --primary-gradient: var(--primary-color);
+  --confetti-color-1: var(--chart-color-1);
+  --confetti-color-2: var(--chart-color-2);
+  --confetti-color-3: var(--chart-color-3);
+  --confetti-color-4: var(--chart-color-4);
+  --confetti-color-5: var(--danger-color);
+  --confetti-color-6: var(--chart-color-6);
+
+  /* Novas cores pastel para os cards do dashboard */
+  --pastel-card-bg-1: #3E5670; /* Dark Slate Blue - para "Meta Mensal" */
+  --pastel-card-bg-2: #436458; /* Dark Muted Teal/Green - para "Horas da Semana" */
+  --pastel-card-bg-3: #634F62; /* Dark Muted Plum - para "Resumo/Previsão" */
+}
+ *{box-sizing:border-box;margin:0;padding:0}
+ html,body{height:100%;-webkit-tap-highlight-color:transparent}
+ body{font-family:var(--font-family);background-color:var(--secondary-color);color:var(--text-color);line-height:1.5;padding:var(--outer-padding);overscroll-behavior-y:contain;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-size:16px}
+ #app{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+ #db-box{background-color:transparent;border-radius:var(--border-radius);padding:12px;margin-bottom:15px;position:relative;overflow:hidden;display:grid;gap:10px;grid-template-columns:1fr;z-index:0;transition:background-color .4s ease-out}
+ #db-box::before{content:'';position:absolute;inset:0;z-index:-2;border-radius:inherit;background-image:conic-gradient(var(--progress-bar-color) calc(var(--progress-percent)*1%),var(--progress-track-color) calc(var(--progress-percent)*1%));transition:background-image .4s ease-out,opacity .3s ease-out;opacity:1}
+ #db-box::after{content:'';position:absolute;inset:var(--dashboard-border-thickness);background:var(--card-bg);z-index:-1;border-radius:calc(var(--border-radius) - var(--dashboard-border-thickness));transition:opacity .3s ease-out,background .4s ease-out;opacity:1}
+ #db-box.met{background-color:transparent}
+ #db-box.met::before{opacity:0;transition:opacity .1s linear}
+ #db-box.met::after{opacity:1;background:var(--success-color);animation:none}
+
+.db-sec {
+  background-color: var(--card-bg); /* Cor de fundo padrão para .db-sec (ex: .pln-sec) */
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-large);
+  padding: 15px 20px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition: background-color .3s ease, border-color .3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Aplicando cores pastel específicas para os três primeiros cards */
+#db-box .h-sec {
+  background-color: var(--pastel-card-bg-1);
+}
+#db-box .m-sec {
+  background-color: var(--pastel-card-bg-2);
+}
+#db-box .s-sec {
+  background-color: var(--pastel-card-bg-3);
+}
+
+/* Estilo para as seções do Dashboard quando a meta é atingida */
+#db-box.met .db-sec {
+  /* A cor de fundo pastel específica de cada card (.h-sec, .m-sec, .s-sec) permanece. */
+  /* Apenas a cor da borda é alterada para indicar o estado de sucesso. */
+  border-color: var(--success-color);
+}
+
+ .h-sec{padding:20px 15px}
+ #db-perc{font-size:3.2em;font-weight:700;line-height:1;margin-bottom:5px;margin-top:0;color:var(--primary-gradient);text-shadow:none;letter-spacing:-1px;order:1}
+ .h-sec>.db-lbl{font-size:.7em;font-weight:600;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:1px;margin-top:0;margin-bottom:0;order:2}
+ .m-sec{padding:15px}
+ .m-sec #db-w-hrs.db-val{font-size:1.6em;font-weight:500;color:var(--text-color);line-height:1.1;margin-bottom:2px;margin-top:0}
+ .m-sec span.db-lbl{font-size:.65em;font-weight:600;color:var(--text-color-tertiary);margin-bottom:0;display:block;text-transform:uppercase;letter-spacing:1px}
+ .s-sec{padding:15px;text-align:center}
+ #db-sum{font-size:.8em;color:var(--text-color-secondary);line-height:1.4;margin-bottom:0;margin-top:0;width:100%;max-width:95%}
+ #db-sum strong{color:var(--text-color);font-weight:600}
+ #db-sum span{display:block;margin-bottom:3px}
+ #db-sum #db-frcst span{text-align:center}
+ .pln-sec{padding:15px;gap:10px;grid-column:1/-1} /* Este card não recebe cor pastel específica */
+ #db-rv-sec,#db-pln-dt{width:100%;margin-top:0}
+ .pln-sec .db-lbl{font-size:.65em;font-weight:600;color:var(--text-color-tertiary);margin-bottom:4px;display:block;text-transform:uppercase;letter-spacing:1px}
+ #db-rv-lst,#db-pln-lst{list-style:none;padding:0;margin:0;text-align:center;font-size:.8em;line-height:1.4;color:var(--text-color-secondary);width:100%;max-height:70px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--separator-color) transparent;margin-top:4px}
+ #db-rv-lst::-webkit-scrollbar,#db-pln-lst::-webkit-scrollbar{width:4px}
+ #db-rv-lst::-webkit-scrollbar-thumb,#db-pln-lst::-webkit-scrollbar-thumb{background-color:var(--separator-color);border-radius:2px}
+ #db-rv-lst li,#db-pln-lst li{margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:2px 6px;border-radius:4px;transition:background-color var(--transition-speed-fast) ease}
+ #db-rv-lst li:hover,#db-pln-lst li:hover{background-color:rgba(243,244,246,.05)}
+ #db-rv-lst li strong,#db-pln-lst li strong{color:var(--text-color);font-weight:600}
+ #db-rv-lst li .rv-dt{color:var(--primary-color);font-weight:500;margin-right:5px}
+ #db-rv-lst li .rv-nm{font-style:italic}
+ #db-box.met .db-sec,#db-box.met #db-perc{color:var(--text-color);text-shadow:none;background:0 0;-webkit-text-fill-color:inherit;text-fill-color:inherit;text-align:center!important}
+ #db-box.met #db-perc{color:var(--text-color)}
+ #db-box.met .h-sec>.db-lbl,#db-box.met .m-sec span.db-lbl,#db-box.met #db-sum,#db-box.met #db-pln-lst li,#db-box.met #db-frcst,#db-box.met #db-rv-lst li,#db-box.met .pln-sec .db-lbl{color:rgba(243,244,246,.8)}
+ #db-box.met .m-sec #db-w-hrs.db-val,#db-box.met #db-sum strong,#db-box.met #db-pln-lst li strong,#db-box.met #db-frcst strong,#db-box.met #db-rv-lst li strong{color:var(--text-color)}
+ #db-box.met #db-rv-lst li .rv-dt{color:rgba(243,244,246,.9)}
+ #db-box.met #db-pln-lst li:hover,#db-box.met #db-rv-lst li:hover{background-color:transparent}
+ #cnf-ctnr{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:10;opacity:0;transition:opacity .4s ease}
+ #db-box.met #cnf-ctnr{opacity:1}
+ .cnf{position:absolute;width:10px;height:10px;background-color:var(--confetti-color-1);opacity:0;border-radius:2px;animation:cnf-fall 4s ease-out infinite}
+ @keyframes cnf-fall{0%{transform:translateY(-10vh) rotateZ(0);opacity:1}100%{transform:translateY(110vh) rotateZ(720deg);opacity:0}}
+ .crd{background-color:var(--card-bg);border-radius:var(--border-radius);overflow:hidden;transition:box-shadow var(--transition-speed) ease}
+ .ch{display:flex;justify-content:space-between;align-items:center;padding:15px var(--card-padding);cursor:pointer;transition:background-color var(--transition-speed-fast) ease;position:relative}
+ .ch::after{content:'';position:absolute;bottom:0;left:var(--card-padding);right:var(--card-padding);height:1px;background-color:var(--border-color);opacity:1;transition:opacity var(--transition-speed-fast) ease}
+ .crd.exp .ch::after{opacity:0}
+ .crd:not(.exp) .ch:hover{background-color:rgba(243,244,246,.03)}
+ .ch h2{color:var(--text-color);margin-bottom:0;font-size:1.15em;font-weight:600;pointer-events:none}
+ .tggl{font-size:.8em;font-weight:700;transition:transform var(--transition-speed) ease;color:var(--text-color-secondary);margin-left:10px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;pointer-events:none}
+ .crd.exp .tggl{transform:rotate(180deg)}
+ .cc{padding:0 var(--card-padding);max-height:0;opacity:0;overflow:hidden;border-top:1px solid var(--border-color);transition:var(--content-transition);margin-top:-1px}
+ .crd.exp .cc{padding-top:var(--card-padding);padding-bottom:calc(var(--card-padding)+5px);max-height:1500px;opacity:1;margin-top:0;overflow:visible}
+ .fg{margin-bottom:16px}
+ label{display:block;margin-bottom:8px;font-weight:500;color:var(--text-color-secondary);font-size:.9em}
+ input[type=date],input[type=number],input[type=text],input[type=search],textarea,select{width:100%;padding:11px 14px;border:1px solid var(--border-color);border-radius:8px;font-size:1em;font-family:var(--font-family);transition:border-color var(--transition-speed) ease,box-shadow var(--transition-speed) ease;appearance:none;-webkit-appearance:none;-moz-appearance:none;background-color:var(--input-bg);color:var(--text-color)}
+ input[type=text].tm-in{font-variant-numeric:tabular-nums}
+ input[type=search]{padding-right:35px;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(243,244,246,.6)" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>');background-repeat:no-repeat;background-position:right 12px center;background-size:16px 16px}
+ input[type=search]::-webkit-search-cancel-button{appearance:none;height:14px;width:14px;background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(243,244,246,.6)" class="bi bi-x-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/></svg>');background-size:14px 14px;cursor:pointer}
+ select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(243,244,246,.6)" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>');background-repeat:no-repeat;background-position:right 14px center;background-size:12px 12px;padding-right:40px}
+ select:focus{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%233B82F6" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>')}
+ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.9) brightness(.9);cursor:pointer}
+ input::placeholder,textarea::placeholder{color:var(--placeholder-color);opacity:1}
+ input:focus,textarea:focus,select:focus{outline:0;border-color:var(--primary-color);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary-color) 30%,transparent)}
+ input[type=number]{-moz-appearance:textfield}
+ input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+ textarea{resize:vertical;min-height:90px}
+ #rec-f-grd{display:grid;grid-template-columns:1fr;gap:15px}
+ button{background-color:var(--primary-color);color:var(--text-color);border:none;padding:10px 20px;border-radius:8px;font-size:1em;font-weight:500;cursor:pointer;transition:background-color var(--transition-speed-fast) ease,transform var(--transition-speed-fast) ease;-webkit-user-select:none;user-select:none;display:inline-block;margin-right:8px;margin-top:10px;width:auto}
+ button:hover{background-color:color-mix(in srgb,var(--primary-color) 85%,#000)}
+ button:active{background-color:color-mix(in srgb,var(--primary-color) 70%,#000);transform:scale(.97);transition-duration:.05s}
+ button.sec{background-color:var(--input-bg);color:var(--primary-color);border:1px solid var(--border-color)}
+ button.sec:hover{background-color:color-mix(in srgb,var(--input-bg) 85%,#000)}
+ button.sec:active{background-color:color-mix(in srgb,var(--input-bg) 70%,#000);transform:scale(.98)}
+ button.succ{background-color:var(--success-color);color:var(--text-color)}
+ button.succ:hover{background-color:color-mix(in srgb,var(--success-color) 85%,#000)}
+ button.succ:active{background-color:color-mix(in srgb,var(--success-color) 70%,#000);transform:scale(.97)}
+ button.dang{background-color:var(--danger-color);color:var(--text-color)}
+ button.dang:hover{background-color:color-mix(in srgb,var(--danger-color) 85%,#000)}
+ button.dang:active{background-color:color-mix(in srgb,var(--danger-color) 70%,#000);transform:scale(.97)}
+ .tc button{width:auto;margin-right:8px}
+ .tc button:last-child{margin-right:0}
+ .chg-dt-btn{background:0 0;border:none;color:var(--primary-color);cursor:pointer;font-size:.9em;padding:5px 0;margin-left:5px;text-align:left;width:auto;margin-right:0;margin-top:0}
+ .chg-dt-btn:hover{text-decoration:underline;background-color:transparent;color:color-mix(in srgb,var(--primary-color) 80%,#fff)}
+ .chg-dt-btn:active{transform:scale(.96);color:color-mix(in srgb,var(--primary-color) 60%,#fff)}
+ .st-grd{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;text-align:center;margin-top:10px}
+ .st-itm{background-color:var(--input-bg);padding:16px 12px;border-radius:8px}
+ .st-val{font-size:1.7em;font-weight:600;color:var(--text-color);display:block;margin-bottom:2px}
+ .st-lbl{font-size:.85em;color:var(--text-color-secondary)}
+ .prg-bar-ctnr{background-color:var(--border-color);border-radius:5px;overflow:hidden;height:8px;margin-top:8px}
+ .prg-bar{background-color:var(--progress-bar-color);height:100%;width:0;transition:width var(--transition-speed) ease-out}
+ #hist-ctrl{margin-bottom:15px;display:flex;gap:10px;padding:0 var(--card-padding)}
+ .hist-srch{flex-grow:1}
+ #shw-res-lbl{font-size:.85em;color:var(--text-color-secondary);margin-top:5px;display:block;text-align:right;padding:0 var(--card-padding) 5px var(--card-padding);min-height:1.2em}
+ .d-lst{list-style:none;padding:0;max-height:400px;overflow-y:auto;margin-top:0;scrollbar-width:thin;scrollbar-color:var(--border-color) transparent}
+ .d-lst::-webkit-scrollbar{width:5px}
+ .d-lst::-webkit-scrollbar-thumb{background-color:var(--border-color);border-radius:3px}
+ .d-lst li{background-color:transparent;border-bottom:1px solid var(--border-color);padding:14px var(--card-padding);margin:0;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;transition:background-color var(--transition-speed-fast) ease}
+ .d-lst li:last-child{border-bottom:none}
+ .d-lst li:hover{background-color:rgba(243,244,246,.02)}
+ .ent-det{font-size:.95em;flex-grow:1;margin-right:10px;line-height:1.4;padding-bottom:5px;word-break:break-word}
+ .ent-det strong{color:var(--text-color);font-weight:500}
+ .ent-det .hrs{color:var(--primary-color);font-weight:600;margin-left:5px;margin-right:5px;white-space:nowrap}
+ .ent-det .tag-bdg{display:inline-block;background-color:var(--input-bg);color:var(--text-color-secondary);font-size:.75em;padding:2px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;white-space:nowrap}
+ .ent-det .nts-prv{color:var(--text-color-secondary);font-size:.9em;display:block;margin-top:5px;white-space:normal;overflow-wrap:break-word;max-height:4.5em;overflow:hidden}
+ .ent-det .rv-cmpl-mrk{display:inline-block;background-color:var(--success-color);color:var(--text-color);font-size:.7em;font-weight:600;padding:2px 5px;border-radius:4px;margin-right:8px;vertical-align:middle;text-transform:uppercase}
+ .ent-det .rv-sch-dt{font-size:.85em;color:var(--text-color-secondary);margin-left:8px}
+ .ent-det .rv-sch-dt strong{color:var(--primary-color);font-weight:500}
+ .ent-act,.pln-act,.rv-act{flex-shrink:0;align-self:center;margin-left:auto}
+ .ent-act button,.pln-act button,.rv-act button{padding:6px 10px;font-size:.85em;margin-left:5px;margin-top:0;width:auto;border-radius:6px}
+ .pln-act button,.rv-act button{margin-top:5px}
+ .ent-act button.sec,.pln-act button.sec,.rv-act button.sec{background-color:color-mix(in srgb,var(--input-bg) 95%,#000); border-color: var(--border-color)}
+ .ent-act button.sec:hover,.pln-act button.sec:hover,.rv-act button.sec:hover{background-color:color-mix(in srgb,var(--input-bg) 75%,#000)}
+ .chrt-ctnr{position:relative;min-height:300px;max-height:400px;width:100%;margin-top:15px}
+ .chrt-hdr{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:10px;padding:0 var(--card-padding)}
+ .chrt-sel-grp{display:flex;align-items:center;gap:8px;flex-grow:1}
+ .chrt-sel-grp label{margin-bottom:0;white-space:nowrap}
+ .chrt-sel-grp select{flex-grow:1;max-width:220px}
+ .chrt-toggle-btn{padding:8px 12px;font-size:.9em;margin:0;flex-shrink:0}
+ .chrt-sum-txt{text-align:center;font-size:.95em;font-weight:500;color:var(--text-color-secondary);margin-bottom:10px;margin-top:5px;min-height:1.3em;padding:0 var(--card-padding)}
+ .dlg-bckdrp{position:fixed;top:0;left:0;width:100%;height:100%;background-color:var(--dialog-backdrop);display:flex;justify-content:center;align-items:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity var(--transition-speed) ease,visibility var(--transition-speed) ease}
+ .dlg-bckdrp.vis{opacity:1;visibility:visible}
+ .dlg-cnt{background-color:var(--card-bg);color:var(--text-color);padding:25px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.25);text-align:center;max-width:90%;width:320px;transform:scale(.95);transition:transform var(--transition-speed) ease}
+ .dlg-bckdrp.vis .dlg-cnt{transform:scale(1)}
+ .dlg-cnt p{margin-bottom:25px;font-size:1.05em;line-height:1.5;white-space:pre-wrap}
+ .dlg-cnt input[type=text]{margin-bottom:20px}
+ .dlg-act button{width:auto;min-width:80px;margin:0 5px;margin-top:0;padding:10px 15px;font-size:1em}
+ .dlg-act button:first-child{margin-left:0}
+ .dlg-act button:last-child{margin-right:0}
+ .dlg-act.single-act button{width:auto;min-width:100px;margin:0 auto}
+ .pln-rpt-opt{display:flex;align-items:center;gap:10px;margin-top:5px;margin-bottom:16px}
+ .pln-rpt-opt input[type=checkbox]{width:auto;height:18px;flex-shrink:0;margin-top:0;cursor:pointer;accent-color:var(--primary-color)}
+ .pln-rpt-opt label{margin-bottom:0;font-size:.9em;cursor:pointer;color:var(--text-color-secondary)}
+ .hdn{display:none!important}
+ .vis-hdn{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
+ .tc{text-align:center}
+ .mt-1{margin-top:10px}
+ .mt-2{margin-top:20px}
+ h3.lst-ttl{font-size:1em;font-weight:600;color:var(--text-color-secondary);margin-bottom:10px;padding-left:var(--card-padding)}
+ .d-lst li.ph{padding-left:var(--card-padding);color:var(--text-color-secondary);font-style:italic;border-bottom:none}
+ #seed-info-icon{position:fixed;top:10px;right:15px;z-index:1001;cursor:pointer;background-color:var(--input-bg); border:1px solid var(--border-color); border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--text-color-secondary);transition:background-color .2s ease,color .2s ease;display:none}
+ #seed-info-icon:hover{background-color:color-mix(in srgb,var(--input-bg) 80%,#000);color:var(--text-color)}
+ #seed-info-icon svg{width:18px;height:18px;fill:currentColor}
+ @media(min-width:768px){:root{--card-padding:20px;--outer-padding:20px;--dashboard-border-thickness:3px;}#app{max-width:860px;gap:12px}#db-box{padding:15px;gap:12px;grid-template-columns:1fr 1fr 1fr}#db-box .h-sec{grid-column:1/2;grid-row:1/2}#db-box .m-sec{grid-column:2/3;grid-row:1/2}#db-box .s-sec{grid-column:3/4;grid-row:1/2}#db-box .pln-sec{grid-column:1/-1;grid-row:2/3}.db-sec{padding:20px 25px}.h-sec{padding:25px 20px}#db-perc{font-size:3.5em}.m-sec #db-w-hrs.db-val{font-size:1.8em}.s-sec{padding:20px}#db-sum{font-size:.85em}.pln-sec{padding:15px 20px}#db-pln-lst,#db-rv-lst{max-height:80px;font-size:.85em}#rec-f-grd{grid-template-columns:1fr 1fr}#pln-f{display:grid;grid-template-columns:1fr 1fr auto;gap:15px;align-items:end}#pln-f .fg{margin-bottom:0}#pln-f .tc{grid-column:3/4;text-align:right}#pln-f .tc button{margin-top:0}.st-grd{grid-template-columns:repeat(4,1fr);gap:15px}.d-lst li{flex-wrap:nowrap;align-items:center}.ent-det{padding-bottom:0}.ent-act,.pln-act,.rv-act{white-space:nowrap;margin-top:0}.dlg-cnt{max-width:400px}.chrt-hdr{flex-wrap:nowrap}.chrt-sel-grp select{max-width:250px}.chrt-sum-txt{text-align:right;margin:0;padding:0}#seed-info-icon{top:15px;right:20px;width:36px;height:36px}#seed-info-icon svg{width:20px;height:20px}.pln-rpt-opt{grid-column:1 / 3;margin-top:0}}
+ @media(min-width:1200px){:root{}#app{max-width:960px}#db-box{padding:18px;gap:15px;grid-template-columns:1.2fr 1fr 1fr}#db-box .pln-sec{grid-column:1/-1}.db-sec{padding:25px 30px}#db-perc{font-size:4em;letter-spacing:-1.5px}.m-sec #db-w-hrs.db-val{font-size:2em}}
+ </style>
+</head>
+<body>
+ <div id="seed-info-icon" title="Mostrar sua Seed de Sincronização">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+  </svg>
+ </div>
+ <div id="db-box">
+  <div id="cnf-ctnr"></div>
+  <div class="db-sec h-sec"> <span id="db-perc" class="db-val">0%</span>
+  <span class="db-lbl">Meta Mensal</span>
+  </div>
+  <div class="db-sec m-sec"> <span id="db-w-hrs" class="db-val">0</span>
+  <span class="db-lbl">Horas da Semana</span>
+  </div>
+  <div class="db-sec s-sec"> <div id="db-sum">
+  <span id="db-m-tot">Total Mês: <strong>0h</strong></span>
+  <span id="db-frcst">Defina sua meta...</span>
+  </div>
+  </div>
+  <div class="db-sec pln-sec hdn"> <div id="db-rv-sec" class="hdn">
+  <span class="db-lbl">Próximas Revisitas</span>
+  <ul id="db-rv-lst"></ul>
+  </div>
+  <div id="db-pln-dt" class="hdn">
+  <span class="db-lbl">Planos Próximos</span>
+  <ul id="db-pln-lst"></ul>
+  </div>
+  </div>
+ </div>
+ <div id="app">
+  <div class="crd exp" id="rec-c">
+  <div class="ch"><h2>Registrar Atividade</h2> <span class="tggl">▲</span></div>
+  <div class="cc">
+  <form id="rec-f">
+  <input type="hidden" id="rec-id">
+  <div class="fg">
+  <label for="rec-dt" id="dt-lbl">Data: <strong id="disp-dt">Hoje</strong> <button type="button" class="chg-dt-btn" id="chg-dt">Alterar</button></label>
+  <input type="date" id="rec-dt" class="hdn">
+  </div>
+  <div id="rec-f-grd">
+  <div class="fg">
+  <label for="rec-hrs">Tempo (HH:MM)</label>
+  <input type="text" inputmode="numeric" id="rec-hrs" class="tm-in" required placeholder="Ex: 2:30">
+  </div>
+  <div class="fg">
+  <label for="rec-tag">Tipo</label>
+  <select id="rec-tag"></select>
+  </div>
+  </div>
+  <div class="fg">
+  <label for="rec-nts" id="rec-nts-lbl">Notas (Opcional)</label>
+  <textarea id="rec-nts" rows="3" placeholder="Detalhes da atividade..."></textarea>
+  </div>
+  <div class="tc" style="margin-top:20px">
+  <button type="submit" id="sv-rec">Salvar</button>
+  </div>
+  </form>
+  </div>
+  </div>
+  <div class="crd" id="rv-c">
+  <div class="ch"><h2>Revisitas</h2><span class="tggl">▼</span></div>
+  <div class="cc">
+  <form id="rv-f">
+  <input type="hidden" id="rv-id">
+  <div class="fg">
+  <label for="rv-nm">Nome/Contato</label>
+  <input type="text" id="rv-nm" required placeholder="Nome ou identificação">
+  </div>
+  <div class="fg">
+  <label for="rv-dt">Data Agendada (Opcional)</label>
+  <input type="date" id="rv-dt">
+  </div>
+  <div class="fg">
+  <label for="rv-nts">Notas</label>
+  <textarea id="rv-nts" rows="2" placeholder="Assunto, local, etc."></textarea>
+  </div>
+  <div class="tc">
+  <button type="submit" id="sv-rv">Adicionar Revisita</button>
+  <button type="button" id="clr-rv-f" class="sec">Limpar</button>
+  </div>
+  </form>
+  <div id="rv-lst-ctnr" class="mt-2">
+  <h3 class="lst-ttl">Pendentes</h3>
+  <ul id="rv-lst" class="d-lst">
+  <li class="ph hdn">Nenhuma revisita pendente.</li>
+  </ul>
+  </div>
+  </div>
+  </div>
+  <div class="crd" id="pln-c">
+  <div class="ch"><h2>Planejamento</h2><span class="tggl">▼</span></div>
+  <div class="cc">
+  <form id="pln-f">
+  <input type="hidden" id="pln-id">
+  <div class="fg">
+  <label for="pln-dt">Data</label>
+  <input type="date" id="pln-dt" required>
+  </div>
+  <div class="fg">
+  <label for="pln-hrs">Horas Planejadas</label>
+  <input type="text" inputmode="numeric" id="pln-hrs" class="tm-in" required placeholder="Ex: 3:00">
+  </div>
+  <div class="pln-rpt-opt">
+    <input type="checkbox" id="pln-repeat">
+    <label for="pln-repeat">Repetir semanalmente</label>
+  </div>
+  <div class="tc">
+  <button type="submit" id="sv-pln">Salvar Plano</button>
+  <button type="button" id="clr-pln-f" class="sec">Limpar</button>
+  </div>
+  </form>
+  <div id="pln-lst-ctnr" class="mt-2">
+  <h3 class="lst-ttl">Datas Planejadas</h3>
+  <ul id="pln-lst" class="d-lst">
+  <li class="ph hdn">Nenhum planejamento registrado.</li>
+  </ul>
+  </div>
+  </div>
+  </div>
+  <div class="crd" id="st-c">
+  <div class="ch"><h2>Estatísticas do Mês</h2><span class="tggl">▼</span></div>
+  <div class="cc">
+  <div class="fg" style="max-width:200px;margin:0 auto 25px auto;text-align:center">
+  <label for="m-goal">Meta Mensal (Horas)</label>
+  <input type="number" id="m-goal" min="1" step="1" value="70">
+  <button id="sv-goal" class="mt-1 sec" style="width:100%;font-size:.9em;padding:8px 10px">Definir Meta</button>
+  </div>
+  <div class="st-grd">
+  <div class="st-itm"><span id="st-m-hrs" class="st-val">0</span><span class="st-lbl">Horas no Mês</span></div>
+  <div class="st-itm"><span id="st-m-prg" class="st-val">0%</span><span class="st-lbl">Progresso da Meta</span><div class="prg-bar-ctnr"><div id="st-m-prg-bar" class="prg-bar"></div></div></div>
+  <div class="st-itm"><span id="st-avg-hrs" class="st-val">0</span><span class="st-lbl">Média / Dia Ativo</span></div>
+  <div class="st-itm"><span id="st-m-days" class="st-val">0</span><span class="st-lbl">Dias Ativos</span></div>
+  </div>
+  </div>
+  </div>
+  <div class="crd" id="chrt-c">
+  <div class="ch"><h2>Gráficos</h2><span class="tggl">▼</span></div>
+  <div class="cc">
+   <div class="chrt-hdr">
+    <div class="chrt-sel-grp">
+     <label for="chrt-sel" id="chrt-sel-lbl">Selecionar Mês:</label>
+     <select id="chrt-sel"></select>
+    </div>
+    <button id="chrt-toggle-btn" class="sec chrt-toggle-btn">Ver Anual</button>
+   </div>
+   <p id="chrt-tot-hrs" class="chrt-sum-txt"></p>
+   <div class="chrt-ctnr">
+    <canvas id="m-hrs-chrt"></canvas>
+   </div>
+  </div>
+  </div>
+  <div class="crd" id="hist-c">
+  <div class="ch"><h2>Histórico</h2><span class="tggl">▼</span></div>
+  <div class="cc">
+  <div id="hist-ctrl">
+  <input type="search" id="hist-srch" class="hist-srch" placeholder="Buscar por data, horas, tipo ou nota...">
+  </div>
+  <span id="shw-res-lbl"></span>
+  <ul id="hist-lst" class="d-lst">
+  <li class="ph hdn">Nenhum registro encontrado.</li>
+  </ul>
+  </div>
+  </div>
+ </div>
+ <div id="conf-dlg" class="dlg-bckdrp">
+  <div class="dlg-cnt">
+  <p id="dlg-msg">Você tem certeza?</p>
+  <div class="dlg-act">
+  <button id="dlg-y" class="dang">Confirmar</button>
+  <button id="dlg-n" class="sec">Cancelar</button>
+  </div>
+  </div>
+ </div>
+ <div id="seed-prompt-dlg" class="dlg-bckdrp">
+  <div class="dlg-cnt">
+  <p id="seed-prompt-msg">Digite a Seed:</p>
+  <input type="text" id="seed-input" placeholder="palavra-123">
+  <div class="dlg-act">
+  <button id="seed-prompt-ok">OK</button>
+  <button id="seed-prompt-cancel" class="sec">Cancelar</button>
+  </div>
+  </div>
+ </div>
+ <div id="seed-choice-dlg" class="dlg-bckdrp">
+  <div class="dlg-cnt">
+  <p id="seed-choice-msg">Mensagem de escolha?</p>
+  <div class="dlg-act">
+  <button id="seed-choice-yes">Sim</button>
+  <button id="seed-choice-no" class="sec">Não</button>
+  <button id="seed-choice-cancel" class="sec" style="display: none;">Cancelar</button>
+  </div>
+  </div>
+ </div>
+ <div id="info-dlg" class="dlg-bckdrp">
+  <div class="dlg-cnt">
+  <p id="info-dlg-msg">Mensagem de informação.</p>
+  <div class="dlg-act single-act">
+  <button id="info-dlg-ok">OK</button>
+  </div>
+  </div>
+ </div>
+</body>
+</html>
+
