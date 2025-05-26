@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador Pessoal com GUN.js</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .tab-button { transition: all 0.3s ease; }
+        .tab-button.active { background-color: #4a5568; color: white; border-bottom-width: 4px; border-bottom-color: #2dd4bf; }
+        .tab-button:not(.active):hover { background-color: #e2e8f0; }
+        .card { background-color: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); padding: 20px; margin-bottom: 20px; }
+        .input-field { border: 1px solid #cbd5e0; border-radius: 8px; padding: 10px 12px; transition: border-color 0.3s ease; width: 100%; }
+        .input-field:focus { border-color: #4a90e2; outline: none; }
+        .btn { padding: 10px 18px; border-radius: 8px; font-weight: 500; transition: background-color 0.3s ease, transform 0.1s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary { background-color: #4a90e2; color: white; }
+        .btn-primary:hover { background-color: #357abd; }
+        .btn-danger { background-color: #e53e3e; color: white; }
+        .btn-danger:hover { background-color: #c53030; }
+        .btn-icon { background: none; border: none; padding: 6px; }
+        .btn:active { transform: scale(0.98); }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .list-item:last-child { border-bottom: none; }
+        .list-item.completed span:first-child { text-decoration: line-through; color: #a0aec0; }
+        .list-item.completed .font-medium { text-decoration: line-through; color: #a0aec0; }
+        .icon { width: 20px; height: 20px; stroke-width: 2; }
+        .dashboard-icon { width: 24px; height: 24px; stroke-width: 1.5; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
+        .empty-state svg { width: 60px; height: 60px; margin-bottom: 15px; color: #cbd5e0; }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .list-item-enter { animation: fadeIn 0.3s ease forwards; }
+        .autocomplete-suggestions {
+            border: 1px solid #cbd5e0;
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            background-color: white;
+            z-index: 1000;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .autocomplete-suggestions div { padding: 8px 12px; cursor: pointer; }
+        .autocomplete-suggestions div:hover { background-color: #f0f4f8; }
+        .dashboard-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+         .dashboard-card-title { font-size: 0.875rem; font-weight: 500; color: #6b7280; margin-bottom: 4px; }
+        .dashboard-card-value { font-size: 1.5rem; font-weight: 600; color: #1f2937; }
+        .dashboard-card-subtext { font-size: 0.75rem; color: #4b5563; }
+        .clickable-card:hover {
+            cursor: pointer;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px -2px rgba(0,0,0,0.1), 0 4px 7px -3px rgba(0,0,0,0.07);
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6">
+    <div class="max-w-2xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-700">Meu Organizador</h1>
+            <p class="text-gray-500 text-sm sm:text-base">Gerencie suas contas e compras com facilidade (com GUN.js).</p>
+        </header>
+
+        <div class="mb-6 flex justify-center space-x-1 sm:space-x-2 bg-gray-200 p-1 rounded-lg shadow">
+            <button id="tabDashboard" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700" onclick="showTab('dashboard')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Dashboard
+            </button>
+            <button id="tabContas" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700 active" onclick="showTab('contas')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                Contas
+            </button>
+            <button id="tabCompras" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700" onclick="showTab('compras')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                Compras
+            </button>
+        </div>
+        
+        <div id="dashboardSection" class="card hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="dashboard-icon mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+                Painel de Controle
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="dashboard-card">
+                    <h3 class="dashboard-card-title">Total em Aberto</h3>
+                    <p id="dashboardTotalNaoPago" class="dashboard-card-value">R$ 0,00</p>
+                    <p id="dashboardTotalNaoPagoCount" class="dashboard-card-subtext">0 contas</p>
+                </div>
+                <div class="dashboard-card bg-red-50">
+                    <h3 class="dashboard-card-title text-red-700">Contas Vencidas</h3>
+                    <p id="dashboardTotalVencidas" class="dashboard-card-value text-red-600">R$ 0,00</p>
+                    <p id="dashboardVencidasCount" class="dashboard-card-subtext text-red-500">0 contas</p>
+                </div>
+                <div class="dashboard-card bg-yellow-50">
+                    <h3 class="dashboard-card-title text-yellow-700">Vencem em 7 Dias</h3>
+                    <p id="dashboardTotalProximos7Dias" class="dashboard-card-value text-yellow-600">R$ 0,00</p>
+                    <p id="dashboardProximos7DiasCount" class="dashboard-card-subtext text-yellow-500">0 contas</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div id="dashboardCardItensPendentes" class="dashboard-card clickable-card col-span-1 md:col-span-1">
+                    <h3 class="dashboard-card-title">Itens Pendentes na Lista</h3>
+                    <p id="dashboardItensPendentesValor" class="dashboard-card-value">0</p>
+                    <p class="dashboard-card-subtext">Clique para ver a lista</p>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Próximas Contas a Vencer</h3>
+                <div id="dashboardProximasContasLista" class="space-y-2">
+                    <p id="dashboardProximasContasEmpty" class="text-sm text-gray-500">Nenhuma conta próxima do vencimento.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="contasSection" class="card">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Contas a Pagar
+            </h2>
+            <form id="formConta" class="space-y-3 mb-6">
+                <div>
+                    <label for="descricaoConta" class="block text-sm font-medium text-gray-600 mb-1">Descrição</label>
+                    <input type="text" id="descricaoConta" class="input-field" placeholder="Ex: Aluguel, Internet" required>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="dataVencimento" class="block text-sm font-medium text-gray-600 mb-1">Vencimento</label>
+                        <input type="date" id="dataVencimento" class="input-field" required>
+                    </div>
+                    <div>
+                        <label for="valorConta" class="block text-sm font-medium text-gray-600 mb-1">Valor (R$)</label>
+                        <input type="number" id="valorConta" class="input-field" placeholder="Ex: 150.00" step="0.01" required>
+                    </div>
+                </div>
+                <div>
+                    <label for="recorrenciaConta" class="block text-sm font-medium text-gray-600 mb-1">Recorrência</label>
+                    <select id="recorrenciaConta" class="input-field">
+                        <option value="nao">Não (Única)</option>
+                        <option value="mensal">Mensal</option>
+                        <option value="bimestral">Bimestral</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Adicionar Conta
+                </button>
+            </form>
+            <div id="listaContas"></div>
+            <div id="contasEmptyState" class="empty-state hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9.75v2.25H2.25v-2.25H21.75zM2.25 12.75h19.5M11.25 2.25c-3.866 0-7.5 1.234-7.5 3v11.25c0 1.987 1.624 3.75 3.75 3.75h15c2.076 0 3.75-1.763 3.75-3.75V5.25c0-1.766-3.634-3-7.5-3S15.116 2.25 11.25 2.25z" />
+                </svg>
+                <p class="font-medium">Nenhuma conta cadastrada.</p>
+                <p class="text-sm">Adicione suas contas para começar a organizar!</p>
+            </div>
+        </div>
+
+        <div id="comprasSection" class="card hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                Lista de Compras
+            </h2>
+            <form id="formCompra" class="flex space-x-2 mb-1 relative">
+                <input type="text" id="itemCompra" class="input-field flex-grow" placeholder="Ex: 🍚 Arroz, 🥛 Leite" required autocomplete="off">
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                </button>
+                 <div id="autocompleteSuggestions" class="autocomplete-suggestions hidden"></div>
+            </form>
+            <div id="listaItensCompra" class="mt-6"></div>
+            <div id="comprasEmptyState" class="empty-state hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                <p class="font-medium">Sua lista de compras está vazia.</p>
+                <p class="text-sm">Adicione itens para não esquecer de nada!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gunPeers = [
+            'https://gunjs.herokuapp.com/gun', // Original, may be unstable
+            'https://gun-manhattan.herokuapp.com/gun',
+            'https://peer.wallie.io/gun',
+            'https://gundb-relay-mlccl.ondigitalocean.app/gun',
+            // 'https://gun-us.herokuapp.com/gun',
+            // 'https://gun-eu.herokuapp.com/gun',
+        ];
+        const gun = Gun({ peers: gunPeers }); 
+        const gunContas = gun.get('organizador/contas/v2'); 
+        const gunItensCompra = gun.get('organizador/itensCompra/v2');
+
+        const tabDashboard = document.getElementById('tabDashboard');
+        const tabContas = document.getElementById('tabContas');
+        const tabCompras = document.getElementById('tabCompras');
+        const dashboardSection = document.getElementById('dashboardSection');
+        const contasSection = document.getElementById('contasSection');
+        const comprasSection = document.getElementById('comprasSection');
+        const formConta = document.getElementById('formConta');
+        const descricaoContaInput = document.getElementById('descricaoConta');
+        const dataVencimentoInput = document.getElementById('dataVencimento');
+        const valorContaInput = document.getElementById('valorConta');
+        const recorrenciaContaInput = document.getElementById('recorrenciaConta');
+        const listaContasDiv = document.getElementById('listaContas');
+        const contasEmptyState = document.getElementById('contasEmptyState');
+        const formCompra = document.getElementById('formCompra');
+        const itemCompraInput = document.getElementById('itemCompra');
+        const listaItensCompraDiv = document.getElementById('listaItensCompra');
+        const comprasEmptyState = document.getElementById('comprasEmptyState');
+        const autocompleteSuggestionsDiv = document.getElementById('autocompleteSuggestions');
+        const dashboardTotalNaoPagoEl = document.getElementById('dashboardTotalNaoPago');
+        const dashboardTotalNaoPagoCountEl = document.getElementById('dashboardTotalNaoPagoCount');
+        const dashboardTotalVencidasEl = document.getElementById('dashboardTotalVencidas');
+        const dashboardVencidasCountEl = document.getElementById('dashboardVencidasCount');
+        const dashboardTotalProximos7DiasEl = document.getElementById('dashboardTotalProximos7Dias');
+        const dashboardProximos7DiasCountEl = document.getElementById('dashboardProximos7DiasCount');
+        const dashboardCardItensPendentesEl = document.getElementById('dashboardCardItensPendentes');
+        const dashboardItensPendentesValorEl = document.getElementById('dashboardItensPendentesValor');
+        const dashboardProximasContasListaEl = document.getElementById('dashboardProximasContasLista');
+        const dashboardProximasContasEmptyEl = document.getElementById('dashboardProximasContasEmpty');
+
+        let localContas = {};
+        let localItensCompra = {};
+
+        const itensComunsBrasil = [
+            '🍚 Arroz', '🫘 Feijão', '🍝 Macarrão', '🍾 Óleo de Cozinha', '🫒 Azeite de Oliva',
+            '🧂 Sal', '🍬 Açúcar', '☕ Café em Pó', '🥛 Leite', '🍞 Pão Francês',
+            '🧈 Manteiga', '🧀 Queijo Mussarela', '🍖 Presunto', '🥚 Ovos', '🍗 Frango (Peito)',
+            '🥩 Carne Bovina (Alcatra)', '🥓 Carne Suína (Lombo)', '🌭 Linguiça', '🐟 Peixe (Salmão)', '🥔 Batata',
+            '🧅 Cebola', '🧄 Alho', '🍅 Tomate', '🥕 Cenoura', '🥬 Alface',
+            '🥦 Brócolis', '🍌 Banana', '🍎 Maçã', '🍊 Laranja', '🍋 Limão',
+            '🥭 Manga', '🍉 Melancia', '🍇 Uva', '🍓 Morango', '🥑 Abacate',
+            '🌾 Farinha de Trigo', '🌽 Farinha de Milho (Fubá)', '🥣 Aveia em Flocos', '🥫 Milho Verde (Lata)', '🥫 Ervilha (Lata)',
+            '🥫 Molho de Tomate', '🫙 Maionese', '🌭 Ketchup', '🌭 Mostarda', '🍶 Vinagre',
+            '🧼 Sabão em Pó', '🧴 Detergente Líquido', '🧽 Água Sanitária', '🧻 Papel Higiênico', '🧼 Sabonete em Barra',
+            '🦷 Creme Dental', '🧴 Shampoo', '🧴 Condicionador', '🧽 Esponja de Louça', '🗑️ Saco de Lixo',
+            '🧃 Suco de Caixa', '🥤 Refrigerante', '💧 Água Mineral', '🍫 Chocolate em Barra', '🍪 Biscoito (Cream Cracker)'
+        ];
+
+        const formatCurrency = (value) => parseFloat(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        function getSortedContasArray() {
+            return Object.values(localContas)
+                .filter(c => c && c.descricao)
+                .sort((a, b) => {
+                    if (a.paga !== b.paga) { return a.paga ? 1 : -1; }
+                    const dateA = a.dataVencimento ? new Date(a.dataVencimento + 'T00:00:00') : null;
+                    const dateB = b.dataVencimento ? new Date(b.dataVencimento + 'T00:00:00') : null;
+                    if (dateA && dateB) return dateA - dateB;
+                    if (dateA) return -1;
+                    if (dateB) return 1;
+                    return 0;
+                });
+        }
+
+        function getSortedItensCompraArray() {
+            return Object.values(localItensCompra)
+                .filter(i => i && i.nome)
+                .sort((a, b) => a.comprado - b.comprado);
+        }
+        
+        window.showTab = function(tabName) {
+            dashboardSection.classList.add('hidden');
+            contasSection.classList.add('hidden');
+            comprasSection.classList.add('hidden');
+            tabDashboard.classList.remove('active');
+            tabContas.classList.remove('active');
+            tabCompras.classList.remove('active');
+            autocompleteSuggestionsDiv.classList.add('hidden');
+            autocompleteSuggestionsDiv.innerHTML = '';
+
+            if (tabName === 'dashboard') {
+                dashboardSection.classList.remove('hidden');
+                tabDashboard.classList.add('active');
+                renderizarDashboard(); 
+            } else if (tabName === 'contas') {
+                contasSection.classList.remove('hidden');
+                tabContas.classList.add('active');
+            } else if (tabName === 'compras') {
+                comprasSection.classList.remove('hidden');
+                tabCompras.classList.add('active');
+            }
+        }
+        
+        function renderizarDashboard() {
+            const contasArray = getSortedContasArray();
+            const itensCompraArray = getSortedItensCompraArray();
+            let totalValorNaoPago = 0, countContasNaoPagas = 0;
+            let totalValorVencidas = 0, countContasVencidas = 0;
+            let totalValorProximos7Dias = 0, countContasProximos7Dias = 0;
+            const proximas3ContasParaVencer = [];
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0); 
+            const proximos7DiasDataLimite = new Date(hoje);
+            proximos7DiasDataLimite.setDate(hoje.getDate() + 7);
+            const contasNaoPagas = contasArray.filter(c => !c.paga);
+            contasNaoPagas.forEach(conta => {
+                const valorConta = parseFloat(conta.valor) || 0;
+                totalValorNaoPago += valorConta;
+                countContasNaoPagas++;
+                if (conta.dataVencimento) {
+                    const dataVencimento = new Date(conta.dataVencimento + 'T00:00:00'); 
+                    if (dataVencimento < hoje) { 
+                        totalValorVencidas += valorConta;
+                        countContasVencidas++;
+                    }
+                    if (dataVencimento >= hoje && dataVencimento <= proximos7DiasDataLimite) { 
+                        totalValorProximos7Dias += valorConta;
+                        countContasProximos7Dias++;
+                    }
+                }
+            });
+            const contasNaoPagasOrdenadas = [...contasNaoPagas]
+                .filter(c => c.dataVencimento) 
+                .sort((a, b) => new Date(a.dataVencimento + 'T00:00:00') - new Date(b.dataVencimento + 'T00:00:00'));
+            for (let i = 0; i < Math.min(3, contasNaoPagasOrdenadas.length); i++) {
+                 const conta = contasNaoPagasOrdenadas[i];
+                 if (new Date(conta.dataVencimento + 'T00:00:00') >= hoje) {
+                    proximas3ContasParaVencer.push(conta);
+                 }
+            }
+            dashboardTotalNaoPagoEl.textContent = formatCurrency(totalValorNaoPago);
+            dashboardTotalNaoPagoCountEl.textContent = `${countContasNaoPagas} conta${countContasNaoPagas !== 1 ? 's' : ''}`;
+            dashboardTotalVencidasEl.textContent = formatCurrency(totalValorVencidas);
+            dashboardVencidasCountEl.textContent = `${countContasVencidas} conta${countContasVencidas !== 1 ? 's' : ''} vencida${countContasVencidas !== 1 ? 's' : ''}`;
+            dashboardTotalProximos7DiasEl.textContent = formatCurrency(totalValorProximos7Dias);
+            dashboardProximos7DiasCountEl.textContent = `${countContasProximos7Dias} conta${countContasProximos7Dias !== 1 ? 's' : ''} nos próximos 7 dias`;
+            dashboardProximasContasListaEl.innerHTML = ''; 
+            if (proximas3ContasParaVencer.length > 0) {
+                dashboardProximasContasEmptyEl.classList.add('hidden');
+                proximas3ContasParaVencer.forEach(conta => {
+                    const dataFormatada = new Date(conta.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                    dashboardProximasContasListaEl.innerHTML += `
+                        <div class="list-item !py-2">
+                            <div class="flex-grow"><span class="font-medium text-sm text-gray-700">${conta.descricao}</span><span class="block text-xs text-gray-500">Vence: ${dataFormatada}</span></div>
+                            <span class="text-sm font-semibold text-gray-800">${formatCurrency(conta.valor)}</span>
+                        </div>`;
+                });
+            } else {
+                 dashboardProximasContasEmptyEl.classList.remove('hidden');
+            }
+            const itensPendentes = itensCompraArray.filter(item => !item.comprado).length;
+            dashboardItensPendentesValorEl.textContent = itensPendentes; 
+        }
+
+        if (dashboardCardItensPendentesEl) { 
+            dashboardCardItensPendentesEl.addEventListener('click', () => showTab('compras'));
+        }
+
+        function formatarRecorrencia(tipo) {
+            const map = { mensal: 'Mensal', bimestral: 'Bimestral', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+            return map[tipo] || '';
+        }
+
+        function renderizarContas() {
+            const contasArray = getSortedContasArray();
+            listaContasDiv.innerHTML = '';
+            if (contasArray.length === 0) {
+                contasEmptyState.classList.remove('hidden');
+                listaContasDiv.classList.add('hidden');
+            } else {
+                contasEmptyState.classList.add('hidden');
+                listaContasDiv.classList.remove('hidden');
+                contasArray.forEach(conta => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `list-item list-item-enter ${conta.paga ? 'completed opacity-70' : ''}`;
+                    const valorFormatado = formatCurrency(conta.valor);
+                    const dataFormatada = conta.dataVencimento ? new Date(conta.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
+                    let infoRecorrencia = (conta.recorrenciaTipo && conta.recorrenciaTipo !== 'nao') ? `<span class="text-xs text-blue-500 block">Recorrência: ${formatarRecorrencia(conta.recorrenciaTipo)}</span>` : '';
+                    itemDiv.innerHTML = `
+                        <div class="flex-grow pr-2">
+                            <span class="font-medium text-gray-800 block">${conta.descricao}</span>
+                            <span class="text-sm text-gray-500 block">Venc: ${dataFormatada} - ${valorFormatado}</span>
+                            ${infoRecorrencia}
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="togglePaga('${conta.id}')" class="btn-icon" title="${conta.paga ? 'Marcar como não paga' : 'Marcar como paga'}">
+                                ${conta.paga ?
+                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
+                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'}
+                            </button>
+                            <button onclick="removerConta('${conta.id}')" class="btn-icon" title="Remover conta">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>`;
+                    listaContasDiv.appendChild(itemDiv);
+                });
+            }
+            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
+        }
+
+        formConta.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const novaConta = {
+                id: crypto.randomUUID(), 
+                descricao: descricaoContaInput.value.trim(),
+                dataVencimento: dataVencimentoInput.value,
+                valor: valorContaInput.value,
+                recorrenciaTipo: recorrenciaContaInput.value,
+                paga: false
+            };
+            if (novaConta.descricao && novaConta.dataVencimento && novaConta.valor) {
+                gunContas.get(novaConta.id).put(novaConta); 
+                descricaoContaInput.value = '';
+                valorContaInput.value = '';
+                recorrenciaContaInput.value = 'nao';
+            } else {
+                if(!document.getElementById('formContaError')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'formContaError';
+                    errorDiv.className = 'text-red-500 text-sm mt-2';
+                    errorDiv.textContent = 'Por favor, preencha todos os campos obrigatórios: Descrição, Vencimento e Valor.';
+                    formConta.appendChild(errorDiv);
+                    setTimeout(() => errorDiv.remove(), 3000);
+                }
+            }
+        });
+
+        window.removerConta = function(contaId) {
+            gunContas.get(contaId).put(null); 
+        }
+
+        window.togglePaga = function(contaId) {
+            gunContas.get(contaId).once(conta => {
+                if (conta) {
+                    let updatedConta = { ...conta, paga: !conta.paga };
+                    if (updatedConta.paga && updatedConta.recorrenciaTipo && updatedConta.recorrenciaTipo !== 'nao') {
+                        let dataAtualVencimento = new Date(updatedConta.dataVencimento + 'T00:00:00');
+                        let novaDataVencimento;
+                        switch (updatedConta.recorrenciaTipo) {
+                            case 'mensal': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 1)); break;
+                            case 'bimestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 2)); break;
+                            case 'trimestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 3)); break;
+                            case 'semestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 6)); break;
+                            case 'anual': novaDataVencimento = new Date(dataAtualVencimento.setFullYear(dataAtualVencimento.getFullYear() + 1)); break;
+                            default: novaDataVencimento = new Date(updatedConta.dataVencimento + 'T00:00:00'); break;
+                        }
+                        updatedConta.dataVencimento = novaDataVencimento.toISOString().split('T')[0];
+                        updatedConta.paga = false; 
+                    }
+                    gunContas.get(contaId).put(updatedConta);
+                }
+            });
+        }
+
+        function renderizarItensCompra() {
+            const itensCompraArray = getSortedItensCompraArray();
+            listaItensCompraDiv.innerHTML = '';
+            if (itensCompraArray.length === 0) {
+                comprasEmptyState.classList.remove('hidden');
+                listaItensCompraDiv.classList.add('hidden');
+            } else {
+                comprasEmptyState.classList.add('hidden');
+                listaItensCompraDiv.classList.remove('hidden');
+                itensCompraArray.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `list-item list-item-enter ${item.comprado ? 'completed opacity-70' : ''}`;
+                    itemDiv.innerHTML = `
+                        <span class="flex-grow pr-2 text-gray-800">${item.nome}</span>
+                        <div class="flex space-x-2">
+                            <button onclick="toggleComprado('${item.id}')" class="btn-icon" title="${item.comprado ? 'Marcar como não comprado' : 'Marcar como comprado'}">
+                                ${item.comprado ?
+                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
+                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'}
+                            </button>
+                            <button onclick="removerItemCompra('${item.id}')" class="btn-icon" title="Remover item">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>`;
+                    listaItensCompraDiv.appendChild(itemDiv);
+                });
+            }
+            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
+        }
+
+        formCompra.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const valorInput = itemCompraInput.value.trim();
+            const nomeLimpo = valorInput.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
+            if (nomeLimpo) {
+                const itemExistente = getSortedItensCompraArray().find(item => 
+                    item.nome.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim().toLowerCase() === nomeLimpo.toLowerCase()
+                );
+                if (!itemExistente) {
+                     const novoItem = {
+                        id: crypto.randomUUID(), 
+                        nome: valorInput, 
+                        comprado: false
+                    };
+                    gunItensCompra.get(novoItem.id).put(novoItem); 
+                } else {
+                    // console.log("Item já existe na lista:", nomeLimpo);
+                }
+                itemCompraInput.value = '';
+                autocompleteSuggestionsDiv.innerHTML = '';
+                autocompleteSuggestionsDiv.classList.add('hidden');
+            }
+        });
+
+        window.removerItemCompra = function(itemId) {
+            gunItensCompra.get(itemId).put(null); 
+        }
+
+        window.toggleComprado = function(itemId) {
+            gunItensCompra.get(itemId).once(item => {
+                if (item) {
+                    const updatedItem = { ...item, comprado: !item.comprado };
+                    gunItensCompra.get(itemId).put(updatedItem);
+                }
+            });
+        }
+        
+        itemCompraInput.addEventListener('input', function() {
+            const inputText = this.value.toLowerCase();
+            autocompleteSuggestionsDiv.innerHTML = '';
+            if (inputText.length === 0) {
+                autocompleteSuggestionsDiv.classList.add('hidden');
+                return;
+            }
+            const suggestions = itensComunsBrasil.filter(item => item.toLowerCase().includes(inputText));
+            if (suggestions.length > 0) {
+                autocompleteSuggestionsDiv.style.width = `${itemCompraInput.offsetWidth}px`;
+                autocompleteSuggestionsDiv.style.top = `${itemCompraInput.offsetHeight}px`;
+                autocompleteSuggestionsDiv.style.left = `0px`;
+                suggestions.slice(0, 10).forEach(suggestion => {
+                    const div = document.createElement('div');
+                    div.textContent = suggestion;
+                    div.addEventListener('click', function() {
+                        itemCompraInput.value = suggestion;
+                        autocompleteSuggestionsDiv.innerHTML = '';
+                        autocompleteSuggestionsDiv.classList.add('hidden');
+                        itemCompraInput.focus();
+                    });
+                    autocompleteSuggestionsDiv.appendChild(div);
+                });
+                autocompleteSuggestionsDiv.classList.remove('hidden');
+            } else {
+                autocompleteSuggestionsDiv.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!formCompra.contains(event.target)) { 
+                autocompleteSuggestionsDiv.classList.add('hidden');
+                autocompleteSuggestionsDiv.innerHTML = '';
+            }
+        });
+
+        gunContas.map().on((contaData, contaId) => {
+            if (contaData) {
+                localContas[contaId] = { ...contaData, id: contaId };
+            } else {
+                delete localContas[contaId]; 
+            }
+            renderizarContas();
+            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
+        });
+
+        gunItensCompra.map().on((itemData, itemId) => {
+            if (itemData) {
+                localItensCompra[itemId] = { ...itemData, id: itemId };
+            } else {
+                delete localItensCompra[itemId];
+            }
+            renderizarItensCompra();
+            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            dataVencimentoInput.value = today; 
+            showTab('contas'); 
+            renderizarContas();
+            renderizarItensCompra();
+            renderizarDashboard(); 
+        });
+    </script>
+</body>
+</html>
+
