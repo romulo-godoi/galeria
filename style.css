@@ -1,0 +1,1315 @@
+:root {
+    --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --bg-color: #1a1a1c;
+    --text-color: #e8e8e8;
+    --card-bg: #2c2c2e;
+    --card-shadow: rgba(0, 0, 0, 0.25);
+    --card-shadow-hover: rgba(0, 0, 0, 0.4);
+    --primary-accent: #0a84ff; /* Azul vibrante para destaque */
+    --secondary-accent: #30d158;
+    --error-text: #ff453a;
+    --subtle-border: rgba(255, 255, 255, 0.1);
+    --subtle-border-light: rgba(255, 255, 255, 0.07);
+    --overlay-bg: rgba(0, 0, 0, 0.85);
+    --input-bg: #3a3a3c;
+    --input-text: var(--text-color);
+    --input-placeholder: color-mix(in srgb, var(--text-color) 50%, transparent);
+    --button-bg: #3a3a3c;
+    --button-text: var(--text-color);
+    --button-hover-bg: #4a4a4c;
+    --link-hover-bg: rgba(255, 255, 255, 0.1);
+    --placeholder-bg: #3f3f41;
+    --scrollbar-thumb: #555;
+    --scrollbar-track: var(--card-bg);
+    --border-radius-s: 8px;
+    --border-radius-m: 14px;
+    --border-radius-l: 20px;
+    --spacing-xs: 4px;
+    --spacing-s: 10px;
+    --spacing-m: 20px;
+    --spacing-l: 30px;
+    --spacing-xl: 40px;
+    --transition-fast: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-medium: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    --cover-blur-amount: 15px;
+    --column-width: 260px;
+    --column-gap: var(--spacing-m);
+
+    --speed-dial-bg: rgba(44, 44, 46, 0.75);
+    --speed-dial-backdrop-blur: 12px;
+    --speed-dial-image-blur: 6px;
+    --speed-dial-item-bg: rgba(58, 58, 60, 0.7);
+    --speed-dial-item-hover-bg: rgba(72, 72, 74, 0.85);
+    --speed-dial-icon-bg: rgba(68, 68, 70, 0.8);
+
+    /* Lucky Feature Specific Variables */
+    --lucky-image-initial-scale: 1.0;
+    --lucky-image-hover-scale: 1.05;
+    --lucky-image-wrapper-max-width: 320px;
+
+    /* Sidebar Specific Variables */
+    --sidebar-width: 280px;
+    --sidebar-bg: var(--card-bg);
+    --sidebar-border-color: var(--subtle-border);
+    --sidebar-padding: var(--spacing-m);
+    --sidebar-top-offset: 100px;
+    --sidebar-transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Instagram Link Modern Flat Style */
+    --instagram-flat-bg: linear-gradient(135deg, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d, #f56040, #f77737, #fcaf45, #ffdc80);
+    --instagram-flat-bg-hover: linear-gradient(135deg, #4a43b8, #702f9a, #a52c6f, #c9285e, #e01515, #dc4f30, #e0682b, #e39c35, #e6c96e);
+    --instagram-flat-text: #ffffff;
+    --instagram-flat-border-radius: var(--border-radius-m); /* Bordas mais arredondadas */
+    --instagram-flat-padding: 12px 24px; /* Mais espaçamento interno */
+    --instagram-flat-font-weight: 600; /* Texto um pouco mais forte */
+    --instagram-flat-box-shadow: none; /* Sem sombra para um visual flat */
+    --instagram-flat-box-shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.1); /* Sombra sutil no hover */
+    --instagram-flat-transition: all 0.3s ease;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes fadeInSweepUp {
+    from { opacity: 0; transform: translateY(25px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-family-sans);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: background-color var(--transition-medium), color var(--transition-medium), padding-left var(--sidebar-transition);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-l);
+    padding-left: var(--spacing-l); /* Default padding */
+    position: relative;
+    overflow-x: hidden;
+}
+
+body.light-theme {
+    --bg-color: #f2f2f7;
+    --text-color: #1c1c1e;
+    --card-bg: #ffffff;
+    --card-shadow: rgba(0, 0, 0, 0.12);
+    --card-shadow-hover: rgba(0, 0, 0, 0.2);
+    --subtle-border: rgba(0, 0, 0, 0.1);
+    --subtle-border-light: rgba(0, 0, 0, 0.05);
+    --overlay-bg: rgba(255, 255, 255, 0.85);
+    --input-bg: #e9e9eb;
+    --input-text: var(--text-color);
+    --input-placeholder: color-mix(in srgb, var(--text-color) 60%, transparent);
+    --button-bg: #e9e9eb;
+    --button-text: var(--text-color);
+    --button-hover-bg: #dcdce0;
+    --link-hover-bg: rgba(0, 0, 0, 0.05);
+    --placeholder-bg: #e8e8ea;
+    --scrollbar-thumb: #bbb;
+    --scrollbar-track: var(--card-bg);
+
+    --speed-dial-bg: rgba(242, 242, 247, 0.8);
+    --speed-dial-backdrop-blur: 15px;
+    --speed-dial-image-blur: 8px;
+    --speed-dial-item-bg: rgba(255, 255, 255, 0.75);
+    --speed-dial-item-hover-bg: rgba(255, 255, 255, 0.9);
+    --speed-dial-icon-bg: rgba(229, 229, 234, 0.85);
+
+    --sidebar-bg: var(--card-bg);
+    --sidebar-border-color: var(--subtle-border);
+
+    /* Instagram Link Modern Flat Style para tema claro */
+    --instagram-flat-bg: linear-gradient(135deg, #6a61e4, #9b4cd1, #d84094, #f03c7c, #fe2e2e, #fba06a, #fcc167, #ffd78c, #ffe8a8);
+    --instagram-flat-bg-hover: linear-gradient(135deg, #5c54d0, #8a3bbc, #c23583, #d8326e, #e82323, #e68a56, #e8ae53, #eec27a, #f5d996);
+    --instagram-flat-text: #ffffff; /* Mantém texto branco para contraste ou pode ser ajustado */
+}
+
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--border-radius-s);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--scrollbar-thumb) 80%, black);
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    text-align: center;
+    margin-bottom: var(--spacing-l);
+    color: var(--text-color);
+    transition: color var(--transition-medium), transform 0.3s ease-in-out;
+    position: relative;
+    z-index: 20;
+}
+body.initial-load h1 {
+    display: none;
+}
+
+
+#loading-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: color-mix(in srgb, var(--card-bg) 90%, transparent);
+    backdrop-filter: blur(8px);
+    color: var(--text-color);
+    padding: var(--spacing-m) var(--spacing-l);
+    border-radius: var(--border-radius-m);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--subtle-border-light);
+    z-index: 1000;
+    display: none;
+    font-size: 1rem;
+    text-align: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+#loading-indicator[style*="block"] {
+    opacity: 1;
+}
+
+#cover-overlay-blur, #cover-overlay {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background-repeat: no-repeat;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-slow), visibility var(--transition-slow);
+    z-index: 5;
+    pointer-events: none;
+}
+
+#cover-overlay-blur {
+    top: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(var(--cover-blur-amount));
+    transform: scale(1.05);
+}
+
+#cover-overlay {
+    inset: 5vh 5vw;
+    width: 90vw;
+    height: 90vh;
+    background-size: contain;
+    background-position: center;
+}
+
+#cover-overlay-blur.visible, #cover-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#speed-dial-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    padding: var(--spacing-xl) var(--spacing-l);
+    background-color: var(--speed-dial-bg);
+    backdrop-filter: blur(var(--speed-dial-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--speed-dial-backdrop-blur));
+    border-radius: var(--border-radius-l);
+    border: 1px solid var(--subtle-border-light);
+    box-shadow: 0 20px 50px var(--card-shadow);
+    transition: background-color var(--transition-medium), box-shadow var(--transition-medium), border-color var(--transition-medium), transform 0.3s ease-in-out;
+    min-height: 75vh;
+    opacity: 0;
+    animation: fadeInSweepUp 0.7s var(--transition-medium) forwards;
+    animation-delay: 0.1s;
+    position: relative;
+    z-index: 15;
+    overflow: hidden;
+}
+
+#speed-dial-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: var(--speed-dial-background-image-url, none);
+    background-size: cover;
+    background-position: center;
+    filter: blur(var(--speed-dial-image-blur));
+    border-radius: inherit;
+    z-index: -1;
+    transition: opacity var(--transition-medium);
+    opacity: 0.7;
+}
+body.light-theme #speed-dial-container::before {
+    opacity: 0.8;
+}
+
+
+body.initial-load #speed-dial-container {
+    display: flex;
+}
+body.initial-load.sidebar-active #speed-dial-container {
+    transform: translateX(0) !important;
+}
+
+
+#speed-dial-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    margin-bottom: var(--spacing-s);
+    position: relative;
+    z-index: 1;
+}
+
+#lucky-feature-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: var(--spacing-m);
+    margin-bottom: var(--spacing-l);
+    padding: 0 var(--spacing-s);
+    position: relative;
+    z-index: 1;
+}
+
+#lucky-image-wrapper {
+    display: none;
+    position: relative;
+    cursor: pointer;
+    width: 100%; 
+    max-width: var(--lucky-image-wrapper-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: var(--border-radius-m);
+    box-shadow: 0 6px 20px var(--card-shadow);
+    transition: box-shadow var(--transition-medium), transform var(--transition-medium);
+    will-change: transform, box-shadow;
+    text-align: center;
+    overflow: hidden; 
+    background-color: var(--placeholder-bg); 
+}
+
+#lucky-image-wrapper:hover {
+    box-shadow: 0 10px 30px var(--card-shadow-hover);
+}
+
+#lucky-image {
+    display: block;
+    width: 100%; 
+    height: auto; 
+    object-fit: cover; 
+    object-position: center;
+    border-radius: var(--border-radius-m); 
+    transform: scale(var(--lucky-image-initial-scale));
+    transition: transform var(--transition-medium) ease-in-out;
+}
+
+#lucky-image-wrapper:hover #lucky-image {
+    transform: scale(var(--lucky-image-hover-scale));
+}
+
+
+#lucky-image-text {
+    display: none; 
+    position: relative;
+    width: fit-content;
+    max-width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: var(--spacing-m); 
+    padding: var(--spacing-s) var(--spacing-m);
+    background-color: rgba(20, 20, 22, 0.88);
+    color: var(--text-color);
+    border-radius: var(--border-radius-m);
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    box-shadow: 0 5px 18px rgba(0,0,0,0.45);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--transition-medium) 0.05s, transform var(--transition-medium) 0.05s;
+}
+
+#lucky-image-text[style*="display: block"],
+#lucky-image-text[style*="display: flex"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#speed-dial-subtitle {
+    font-size: 1.1rem;
+    color: color-mix(in srgb, var(--text-color) 75%, transparent);
+    margin-bottom: var(--spacing-l);
+    margin-top: var(--spacing-s);
+    max-width: 600px;
+    position: relative;
+    z-index: 1;
+}
+#select-nucleo-folder {
+    margin-top: var(--spacing-l);
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: var(--spacing-m) var(--spacing-xl);
+    cursor: pointer;
+    background-color: var(--primary-accent);
+    color: white;
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--primary-accent) 40%, transparent);
+    border: none;
+    border-radius: var(--border-radius-m);
+    position: relative;
+    z-index: 1;
+}
+body.light-theme #select-nucleo-folder {
+    color: white;
+}
+#select-nucleo-folder:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--primary-accent) 90%, black);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-accent) 50%, transparent);
+    transform: translateY(-1px);
+}
+#select-nucleo-folder:active:not(:disabled) {
+    transform: translateY(0px);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--primary-accent) 30%, transparent);
+}
+body:not(.initial-load) #select-nucleo-folder,
+body:not(.initial-load) #speed-dial-subtitle {
+    display: none;
+}
+
+#speed-dial-status {
+    min-height: 1.5em;
+    margin-top: var(--spacing-l);
+    font-size: 1rem;
+    transition: color var(--transition-fast);
+    color: color-mix(in srgb, var(--text-color) 80%, transparent);
+    position: relative;
+    z-index: 1;
+}
+#speed-dial-status.error {
+    color: var(--error-text);
+    font-weight: 500;
+}
+
+
+#speed-dial-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--spacing-xl);
+    width: 100%;
+    padding: var(--spacing-l) 0;
+    margin-top: var(--spacing-m);
+    display: none;
+    position: relative;
+    z-index: 1;
+}
+
+.speed-dial-item {
+    background-color: var(--speed-dial-item-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--border-radius-l);
+    padding: var(--spacing-m);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    border: 1px solid var(--subtle-border-light);
+    box-shadow: 0 5px 15px var(--card-shadow);
+    position: relative;
+    overflow: visible;
+    opacity: 0;
+    animation: fadeInSweepUp 0.5s var(--transition-fast) forwards;
+    will-change: transform, box-shadow, background-color, border-color;
+    transition: transform var(--transition-medium), box-shadow var(--transition-medium),
+                background-color var(--transition-medium), border-width var(--transition-medium), border-color var(--transition-medium);
+}
+
+.speed-dial-item:hover:not(.dragging),
+.speed-dial-item:focus-visible:not(.dragging) {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 12px 30px var(--card-shadow-hover);
+    background-color: var(--speed-dial-item-hover-bg);
+    border-color: var(--secondary-accent);
+    border-width: 2px;
+}
+.speed-dial-item:focus-visible {
+     outline: none;
+}
+
+.speed-dial-item .icon-container {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--border-radius-m);
+    margin-bottom: var(--spacing-m);
+    background-color: var(--speed-dial-icon-bg);
+    border: 1px solid var(--subtle-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1), 0 1px 1px rgba(255,255,255,0.03);
+    transition: background-color var(--transition-medium), border-color var(--transition-medium);
+}
+.speed-dial-item:hover .icon-container {
+     border-color: color-mix(in srgb, var(--secondary-accent) 50%, var(--subtle-border-light));
+}
+
+
+.speed-dial-item .icon-container::after {
+    content: '';
+    font-size: 2.5rem;
+    color: color-mix(in srgb, var(--text-color) 35%, transparent);
+    position: absolute;
+    transition: opacity var(--transition-fast), transform 0.3s ease-out;
+}
+.speed-dial-item:hover .icon-container::after {
+     transform: scale(1.1);
+}
+.speed-dial-item.icon-error .icon-container::after,
+.speed-dial-item .icon-container img.speed-dial-icon.loaded + ::after {
+    opacity: 0;
+    transform: scale(0.9);
+}
+
+
+.speed-dial-item img.speed-dial-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transform: scale(1.15);
+    filter: brightness(0.95);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out, filter 0.4s ease-out;
+}
+.speed-dial-item img.speed-dial-icon.loaded {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+}
+.speed-dial-item.icon-error .icon-container {
+    background-color: color-mix(in srgb, var(--error-text) 20%, var(--placeholder-bg));
+    border-color: color-mix(in srgb, var(--error-text) 40%, transparent);
+}
+.speed-dial-item span.text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.1px;
+    text-align: center;
+    word-break: break-word;
+    margin-bottom: var(--spacing-xs);
+    flex-grow: 1;
+    max-height: 2.9em;
+    overflow: hidden;
+    color: var(--text-color);
+    transition: color 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+.speed-dial-item:hover span.text {
+     color: color-mix(in srgb, var(--text-color) 100%, transparent);
+}
+
+.speed-dial-item .edit-btn {
+    position: absolute;
+    top: var(--spacing-s);
+    right: var(--spacing-s);
+    background: color-mix(in srgb, var(--speed-dial-item-bg) 90%, transparent);
+    backdrop-filter: blur(3px);
+    border: 1px solid var(--subtle-border-light);
+    color: var(--text-color);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+    line-height: 28px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.7) translate(5px, -5px);
+    transition: all var(--transition-medium);
+    z-index: 3;
+}
+.speed-dial-item:hover .edit-btn {
+    opacity: 0.9;
+    transform: scale(1) translate(0, 0);
+}
+.speed-dial-item .edit-btn:hover {
+    opacity: 1;
+    background-color: var(--button-hover-bg);
+    border-color: var(--subtle-border);
+    transform: scale(1.05);
+}
+.speed-dial-item .edit-btn:focus-visible {
+     outline: 2px solid var(--primary-accent);
+     outline-offset: 2px;
+     opacity: 1;
+     transform: scale(1) translate(0, 0);
+}
+
+.speed-dial-item.dragging {
+    opacity: 0.6;
+    cursor: grabbing;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transform: scale(1.05);
+    background-color: var(--speed-dial-item-hover-bg);
+    border-color: var(--secondary-accent);
+    border-width: 2px;
+}
+
+.speed-dial-item.drag-over {
+    background-color: color-mix(in srgb, var(--primary-accent) 15%, var(--speed-dial-item-bg));
+    border-color: var(--primary-accent);
+    border-width: 2px;
+    box-shadow: 0 8px 25px color-mix(in srgb, var(--primary-accent) 20%, transparent);
+    transform: scale(1.02) translateY(-3px);
+}
+input[type="file"] {
+    display: none;
+}
+
+/* --- Caminho Sidebar Styles --- */
+#caminho-sidebar {
+    position: fixed;
+    top: var(--sidebar-top-offset);
+    left: calc(-1 * var(--sidebar-width) - 20px);
+    width: var(--sidebar-width);
+    height: calc(100vh - var(--sidebar-top-offset) - var(--spacing-m));
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border-color);
+    box-shadow: 3px 0 15px rgba(0,0,0,0.25);
+    padding: var(--sidebar-padding);
+    overflow-y: auto;
+    z-index: 990;
+    transition: var(--sidebar-transition);
+    border-top-right-radius: var(--border-radius-m);
+    border-bottom-right-radius: var(--border-radius-m);
+}
+
+#caminho-sidebar.visible {
+    left: 0;
+}
+
+#caminho-sidebar h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-m);
+    color: var(--text-color);
+    font-size: 1.25rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--subtle-border-light);
+    padding-bottom: var(--spacing-s);
+    padding-right: 30px;
+}
+
+#caminho-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#caminho-sidebar li {
+    padding: var(--spacing-s) var(--spacing-xs);
+    cursor: pointer;
+    border-radius: var(--border-radius-s);
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-color);
+    transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    font-size: 0.9rem;
+    word-break: break-word;
+    letter-spacing: 0.2px;
+}
+
+#caminho-sidebar li:hover {
+    background-color: var(--link-hover-bg);
+    color: var(--primary-accent);
+    transform: translateX(3px);
+}
+#caminho-sidebar li:active {
+    transform: translateX(1px);
+    background-color: color-mix(in srgb, var(--link-hover-bg) 80%, black);
+}
+
+
+#caminho-sidebar-close-btn {
+    position: absolute;
+    top: calc(var(--sidebar-padding) - 5px) ;
+    right: var(--sidebar-padding);
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+#caminho-sidebar-close-btn:hover {
+    color: var(--error-text);
+    background-color: var(--link-hover-bg);
+}
+
+body.sidebar-active .controls-container,
+body.sidebar-active #media-container {
+    margin-left: calc(var(--sidebar-width) + var(--spacing-m));
+    width: calc(100% - var(--sidebar-width) - var(--spacing-m) - var(--spacing-l));
+    transition: margin-left var(--sidebar-transition), width var(--sidebar-transition);
+}
+
+body.sidebar-active h1 {
+    margin-left: 0;
+    width: auto; 
+}
+
+body.sidebar-active.initial-load #speed-dial-container {
+    margin-left: 0;
+    width: 100%;
+}
+
+body.initial-load #caminho-sidebar {
+    display: none !important;
+}
+/* --- End Caminho Sidebar Styles --- */
+
+
+.controls-container {
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-m);
+    margin-bottom: var(--spacing-l);
+    width: 100%;
+    max-width: 800px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 11;
+    transition: padding-left var(--sidebar-transition), transform var(--sidebar-transition);
+}
+
+.search-container {
+    position: relative;
+    flex-grow: 1;
+    max-width: 400px;
+}
+
+#search-input {
+    width: 100%;
+    padding: var(--spacing-s) var(--spacing-m);
+    border-radius: var(--border-radius-m);
+    border: 1px solid var(--subtle-border);
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    font-size: 1rem;
+    transition: background-color var(--transition-medium), border-color var(--transition-medium), box-shadow var(--transition-fast);
+}
+#search-input:focus {
+    outline: none;
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-accent) 30%, transparent);
+}
+#search-input::placeholder {
+    color: var(--input-placeholder);
+    transition: color var(--transition-medium);
+}
+#search-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#search-suggestions {
+    position: absolute;
+    top: calc(100% + var(--spacing-xs));
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--subtle-border);
+    border-radius: var(--border-radius-m);
+    box-shadow: 0 5px 15px var(--card-shadow);
+    z-index: 900;
+    max-height: 350px;
+    overflow-y: auto;
+    display: none;
+}
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-s) var(--spacing-m);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    color: var(--text-color);
+}
+.suggestion-item:hover,
+.suggestion-item.active {
+    background-color: var(--link-hover-bg);
+}
+.suggestion-item:hover .suggestion-text,
+.suggestion-item.active .suggestion-text {
+    color: var(--primary-accent);
+}
+.suggestion-item:not(:last-child) {
+    border-bottom: 1px solid var(--subtle-border);
+}
+
+.suggestion-thumbnail {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: var(--border-radius-s);
+    margin-right: 16px;
+    background-color: var(--placeholder-bg);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.suggestion-thumbnail.loaded {
+    opacity: 1;
+}
+
+.suggestion-text {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-color);
+    transition: color var(--transition-fast);
+    font-size: 1.15rem;
+}
+
+button:not(.edit-btn):not(#rotate-button):not(#caminho-sidebar-close-btn) {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    border: 1px solid transparent;
+    padding: var(--spacing-s) var(--spacing-m);
+    border-radius: var(--border-radius-m);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    white-space: nowrap;
+}
+button:not(.edit-btn):not(#rotate-button):not(#caminho-sidebar-close-btn):hover:not(:disabled) {
+    background-color: var(--button-hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+button:not(.edit-btn):not(#rotate-button):not(#caminho-sidebar-close-btn):active:not(:disabled) {
+    transform: translateY(0px);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+button:not(.edit-btn):not(#rotate-button):not(#caminho-sidebar-close-btn):focus-visible {
+    outline: none;
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-accent) 30%, transparent);
+}
+button:not(.edit-btn):not(#rotate-button):not(#caminho-sidebar-close-btn):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+#media-container {
+    width: 100%;
+    max-width: 1400px;
+    margin-top: var(--spacing-l);
+    margin-right: auto;
+    margin-bottom: var(--spacing-l);
+    margin-left: auto;
+    column-width: var(--column-width);
+    column-gap: var(--column-gap);
+    display: none;
+    position: relative;
+    z-index: 10;
+    transition: opacity var(--transition-medium), margin-left var(--sidebar-transition), width var(--sidebar-transition);
+}
+#media-container[style*="block"] {
+    opacity: 1;
+}
+#media-container:not([style*="block"]) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.media-container-item {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-l);
+    overflow: hidden;
+    margin-bottom: var(--column-gap);
+    break-inside: avoid;
+    box-shadow: 0 4px 12px var(--card-shadow);
+    transition: background-color var(--transition-medium), box-shadow var(--transition-medium),
+                opacity var(--transition-slow), transform var(--transition-slow);
+    position: relative;
+    cursor: default;
+    opacity: 0;
+    transform: translateY(25px) scale(0.98);
+}
+.media-container-item.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.media-container-item .media-item {
+    display: block;
+    width: 100%;
+    height: auto;
+    background-color: var(--placeholder-bg);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+.media-container-item:hover .media-item:not(video) {
+    transform: scale(1.03);
+}
+
+.media-container-item video.media-item {
+    aspect-ratio: 16 / 9;
+}
+
+.media-container-item .media-error-placeholder {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: var(--placeholder-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--error-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color var(--transition-medium);
+}
+.media-container-item.has-error {
+    border: 1px solid color-mix(in srgb, var(--error-text) 50%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--error-text) 30%, transparent);
+}
+
+.media-container-item p {
+    padding: var(--spacing-s) var(--spacing-m);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+    color: var(--text-color);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.media-container-item p:hover {
+    background-color: var(--link-hover-bg);
+    color: var(--primary-accent);
+}
+
+.media-container-item.is-original .original-label {
+    position: absolute;
+    top: var(--spacing-s);
+    left: var(--spacing-s);
+    background-color: color-mix(in srgb, var(--secondary-accent) 90%, black);
+    color: #fff;
+    padding: var(--spacing-xs) var(--spacing-s);
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: var(--border-radius-s);
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+#fullscreen-media {
+    position: fixed;
+    inset: 0;
+    background-color: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    display: none;
+    padding: var(--spacing-m);
+    opacity: 0;
+    transition: opacity var(--transition-medium);
+}
+#fullscreen-media[style*="flex"] {
+     opacity: 1;
+}
+
+#fullscreen-img, #fullscreen-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+    border-radius: var(--border-radius-m);
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.15s linear;
+    will-change: transform;
+    transform-origin: center center;
+}
+
+#fullscreen-img.grabbing {
+    cursor: grabbing;
+}
+
+#fullscreen-video {
+    cursor: default;
+    outline: none;
+}
+
+#rotate-button {
+    position: absolute;
+    bottom: var(--spacing-l);
+    right: var(--spacing-l);
+    background-color: color-mix(in srgb, var(--button-bg) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--subtle-border);
+    color: var(--text-color);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 2rem;
+    line-height: 46px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 2010;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: background-color var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
+}
+#rotate-button:hover {
+    background-color: var(--button-hover-bg);
+    transform: scale(1.08) rotate(15deg);
+}
+#rotate-button:active {
+    transform: scale(1.0);
+}
+
+@media (max-width: 960px) {
+     :root {
+        --speed-dial-item-bg: rgba(58, 58, 60, 0.8);
+        --speed-dial-item-hover-bg: rgba(72, 72, 74, 0.9);
+        --speed-dial-bg: rgba(44, 44, 46, 0.85);
+        --lucky-image-wrapper-max-width: 300px;
+        --sidebar-width: 260px;
+    }
+    #speed-dial-options {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--spacing-m);
+    }
+    body.sidebar-active .controls-container,
+    body.sidebar-active #media-container {
+        margin-left: calc(var(--sidebar-width) + var(--spacing-s));
+        width: calc(100% - var(--sidebar-width) - var(--spacing-s) - var(--spacing-l));
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --column-width: 200px;
+        --border-radius-m: 12px;
+        --border-radius-l: 18px;
+        --lucky-image-wrapper-max-width: 280px;
+        --speed-dial-image-blur: 5px;
+        --sidebar-width: 240px;
+        --sidebar-padding: var(--spacing-s);
+        --instagram-flat-padding: 10px 20px; /* Ajuste para telas menores */
+        --instagram-flat-font-size: 0.9rem;
+    }
+    body {
+        padding: var(--spacing-m);
+        padding-left: var(--spacing-m);
+    }
+    h1 {
+        font-size: 2rem;
+    }
+    .controls-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+     .search-container {
+        max-width: none;
+    }
+    #speed-dial-container {
+        padding: var(--spacing-l) var(--spacing-m);
+        min-height: auto;
+        border-radius: var(--border-radius-m);
+        backdrop-filter: blur(calc(var(--speed-dial-backdrop-blur) * 0.8));
+         -webkit-backdrop-filter: blur(calc(var(--speed-dial-backdrop-blur) * 0.8));
+    }
+    #lucky-feature-container {
+        margin-top: var(--spacing-m);
+        margin-bottom: var(--spacing-l);
+    }
+    #lucky-image-text {
+        font-size: 0.9rem;
+        padding: var(--spacing-xs) var(--spacing-s);
+        margin-top: var(--spacing-s);
+    }
+    #speed-dial-options {
+         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+         gap: var(--spacing-m);
+    }
+     .speed-dial-item {
+         border-radius: var(--border-radius-m);
+         padding: var(--spacing-s);
+         backdrop-filter: blur(5px);
+         -webkit-backdrop-filter: blur(5px);
+     }
+     .speed-dial-item .icon-container {
+        width: 60px;
+        height: 60px;
+        margin-bottom: var(--spacing-s);
+        border-radius: var(--border-radius-s);
+    }
+     .speed-dial-item span.text {
+        font-size: 0.85rem;
+        max-height: 2.5em;
+     }
+     .speed-dial-item .edit-btn {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 0.8rem;
+        top: var(--spacing-xs);
+        right: var(--spacing-xs);
+    }
+    #fullscreen-img, #fullscreen-video {
+        max-width: 100%;
+        max-height: calc(100% - 60px);
+        width: auto;
+        height: auto;
+        border-radius: var(--border-radius-m);
+    }
+    #rotate-button {
+         bottom: var(--spacing-m);
+         right: var(--spacing-m);
+         width: 44px;
+         height: 44px;
+         line-height: 42px;
+         font-size: 1.8rem;
+    }
+    #caminho-sidebar {
+        height: calc(100vh - var(--sidebar-top-offset) - var(--spacing-s));
+    }
+    #caminho-sidebar h3 {
+        font-size: 1.1rem;
+    }
+    #caminho-sidebar li {
+        font-size: 0.85rem;
+    }
+    body.sidebar-active .controls-container,
+    body.sidebar-active #media-container {
+        margin-left: calc(var(--sidebar-width) + var(--spacing-xs));
+        width: calc(100% - var(--sidebar-width) - var(--spacing-xs) - var(--spacing-m));
+    }
+}
+
+@media (max-width: 480px) {
+     :root {
+        --column-width: calc(50% - var(--column-gap) / 2);
+        --column-gap: var(--spacing-m);
+        --lucky-image-wrapper-max-width: calc(100% - var(--spacing-m));
+        --speed-dial-image-blur: 4px;
+        --sidebar-width: 200px;
+        --instagram-flat-padding: 8px 16px; /* Ainda menor para telas muito pequenas */
+        --instagram-flat-font-size: 0.85rem;
+    }
+     #media-container {
+         column-width: var(--column-width);
+         column-gap: var(--column-gap);
+         max-width: 100%;
+     }
+    .media-container-item {
+        margin-bottom: var(--column-gap);
+        border-radius: var(--border-radius-m);
+    }
+    .media-container-item p {
+        font-size: 0.8rem;
+        padding: var(--spacing-xs) var(--spacing-s);
+    }
+     #speed-dial-container {
+          padding: var(--spacing-m);
+          border-radius: var(--border-radius-m);
+     }
+     #speed-dial-container::before {
+        opacity: 0.6;
+     }
+    #lucky-feature-container {
+        max-width: 100%;
+        margin-top: var(--spacing-s);
+        margin-bottom: var(--spacing-m);
+    }
+    #lucky-image-text {
+        font-size: 0.85rem;
+        margin-top: var(--spacing-s);
+    }
+    #speed-dial-options {
+         grid-template-columns: repeat(2, 1fr);
+         gap: var(--spacing-m);
+    }
+    .speed-dial-item {
+        padding: var(--spacing-s);
+        border-radius: var(--border-radius-m);
+        backdrop-filter: none;
+         -webkit-backdrop-filter: none;
+         background-color: color-mix(in srgb, var(--speed-dial-item-bg) 85%, transparent);
+    }
+    .speed-dial-item:hover:not(.dragging),
+    .speed-dial-item:focus-visible:not(.dragging) {
+        border-width: 1px;
+        transform: translateY(-5px) scale(1.01);
+    }
+    .speed-dial-item .icon-container {
+        width: 55px;
+        height: 55px;
+        border-radius: var(--border-radius-s);
+    }
+    .speed-dial-item span.text {
+         font-size: 0.8rem;
+    }
+    #caminho-sidebar {
+        box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+    }
+    #caminho-sidebar-close-btn {
+        font-size: 1.6rem;
+        top: calc(var(--sidebar-padding) - 8px);
+        right: calc(var(--sidebar-padding) - 5px);
+    }
+    body.sidebar-active .controls-container,
+    body.sidebar-active #media-container {
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width) - var(--spacing-m));
+    }
+}
+
+/* Ordem dos elementos principais */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.controls-container {
+    order: 1;
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: var(--spacing-s);
+    position: relative;
+    z-index: 800;
+}
+
+#main-header-title {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0;
+    order: 2;
+    margin-top: 0;
+    margin-bottom: var(--spacing-m);
+    line-height: normal;
+    position: relative;
+    z-index: 700;
+}
+
+#search-suggestions {
+    position: absolute;
+    top: calc(100% + var(--spacing-xs));
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--subtle-border);
+    border-radius: var(--border-radius-m);
+    box-shadow: 0 5px 15px var(--card-shadow);
+    max-height: 350px;
+    overflow-y: auto;
+    display: none;
+    z-index: 950;
+}
+
+#media-container,
+#speed-dial-container {
+    order: 3;
+    width: 100%;
+    margin-top: 0;
+}
+
+/* Estilos para o link do Instagram Moderno e Flat */
+.instagram-link {
+    display: inline-flex; /* Para alinhar texto e possível ícone futuro */
+    align-items: center;
+    justify-content: center;
+    padding: var(--instagram-flat-padding);
+    background: var(--instagram-flat-bg);
+    color: var(--instagram-flat-text);
+    font-weight: var(--instagram-flat-font-weight);
+    font-size: var(--instagram-flat-font-size, 1rem); /* Adicionada variável com fallback */
+    text-decoration: none;
+    border-radius: var(--instagram-flat-border-radius);
+    border: none; /* Sem borda para um visual mais flat */
+    box-shadow: var(--instagram-flat-box-shadow);
+    transition: var(--instagram-flat-transition);
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.5px; /* Espaçamento sutil entre letras */
+}
+
+.instagram-link:hover,
+.instagram-link:focus {
+    background: var(--instagram-flat-bg-hover);
+    color: var(--instagram-flat-text); /* Manter a cor do texto ou ajustar se necessário */
+    transform: translateY(-2px); /* Leve elevação no hover */
+    box-shadow: var(--instagram-flat-box-shadow-hover);
+    text-decoration: none;
+    outline: none; /* Remover outline padrão do foco, se desejado */
+}
+
+.instagram-link:active {
+    transform: translateY(0px); /* Efeito de clique */
+    box-shadow: none; /* Remover sombra no active para mais "flatness" */
+}
+
+/* Remove o ::after que continha o ícone */
+.instagram-link::after {
+    content: none;
+}
+
+/* Remove o ::before que era usado para efeito de brilho */
+.instagram-link::before {
+    content: none;
+}
+
