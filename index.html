@@ -3,602 +3,382 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organizador Pessoal com GUN.js</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
-        .tab-button { transition: all 0.3s ease; }
-        .tab-button.active { background-color: #4a5568; color: white; border-bottom-width: 4px; border-bottom-color: #2dd4bf; }
-        .tab-button:not(.active):hover { background-color: #e2e8f0; }
-        .card { background-color: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); padding: 20px; margin-bottom: 20px; }
-        .input-field { border: 1px solid #cbd5e0; border-radius: 8px; padding: 10px 12px; transition: border-color 0.3s ease; width: 100%; }
-        .input-field:focus { border-color: #4a90e2; outline: none; }
-        .btn { padding: 10px 18px; border-radius: 8px; font-weight: 500; transition: background-color 0.3s ease, transform 0.1s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-primary { background-color: #4a90e2; color: white; }
-        .btn-primary:hover { background-color: #357abd; }
-        .btn-danger { background-color: #e53e3e; color: white; }
-        .btn-danger:hover { background-color: #c53030; }
-        .btn-icon { background: none; border: none; padding: 6px; }
-        .btn:active { transform: scale(0.98); }
-        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
-        .list-item:last-child { border-bottom: none; }
-        .list-item.completed span:first-child { text-decoration: line-through; color: #a0aec0; }
-        .list-item.completed .font-medium { text-decoration: line-through; color: #a0aec0; }
-        .icon { width: 20px; height: 20px; stroke-width: 2; }
-        .dashboard-icon { width: 24px; height: 24px; stroke-width: 1.5; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #718096; }
-        .empty-state svg { width: 60px; height: 60px; margin-bottom: 15px; color: #cbd5e0; }
-        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
-        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .list-item-enter { animation: fadeIn 0.3s ease forwards; }
-        .autocomplete-suggestions {
-            border: 1px solid #cbd5e0;
-            border-top: none;
-            max-height: 150px;
-            overflow-y: auto;
-            position: absolute;
-            background-color: white;
-            z-index: 1000;
-            border-radius: 0 0 8px 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .autocomplete-suggestions div { padding: 8px 12px; cursor: pointer; }
-        .autocomplete-suggestions div:hover { background-color: #f0f4f8; }
-        .dashboard-card {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-         .dashboard-card-title { font-size: 0.875rem; font-weight: 500; color: #6b7280; margin-bottom: 4px; }
-        .dashboard-card-value { font-size: 1.5rem; font-weight: 600; color: #1f2937; }
-        .dashboard-card-subtext { font-size: 0.75rem; color: #4b5563; }
-        .clickable-card:hover {
-            cursor: pointer;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 12px -2px rgba(0,0,0,0.1), 0 4px 7px -3px rgba(0,0,0,0.07);
-            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-        }
-    </style>
-</head>
-<body class="min-h-screen p-4 sm:p-6">
-    <div class="max-w-2xl mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-700">Meu Organizador</h1>
-            <p class="text-gray-500 text-sm sm:text-base">Gerencie suas contas e compras com facilidade (com GUN.js).</p>
-        </header>
+    <title>Random Media (Firefox) com Navegação Lateral</title>
+    <link id="favicon" rel="icon" href="#">
+    <link rel="stylesheet" href="style.css">
+    </head>
+<body class="initial-load">
 
-        <div class="mb-6 flex justify-center space-x-1 sm:space-x-2 bg-gray-200 p-1 rounded-lg shadow">
-            <button id="tabDashboard" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700" onclick="showTab('dashboard')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                Dashboard
-            </button>
-            <button id="tabContas" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700 active" onclick="showTab('contas')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                Contas
-            </button>
-            <button id="tabCompras" class="tab-button flex-1 py-2 px-3 sm:px-4 rounded-md text-xs sm:text-base font-medium text-gray-700" onclick="showTab('compras')">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon inline-block mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                Compras
-            </button>
-        </div>
-        
-        <div id="dashboardSection" class="card hidden">
-            <h2 class="text-xl font-semibold text-gray-700 mb-6 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="dashboard-icon mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-                Painel de Controle
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="dashboard-card">
-                    <h3 class="dashboard-card-title">Total em Aberto</h3>
-                    <p id="dashboardTotalNaoPago" class="dashboard-card-value">R$ 0,00</p>
-                    <p id="dashboardTotalNaoPagoCount" class="dashboard-card-subtext">0 contas</p>
-                </div>
-                <div class="dashboard-card bg-red-50">
-                    <h3 class="dashboard-card-title text-red-700">Contas Vencidas</h3>
-                    <p id="dashboardTotalVencidas" class="dashboard-card-value text-red-600">R$ 0,00</p>
-                    <p id="dashboardVencidasCount" class="dashboard-card-subtext text-red-500">0 contas</p>
-                </div>
-                <div class="dashboard-card bg-yellow-50">
-                    <h3 class="dashboard-card-title text-yellow-700">Vencem em 7 Dias</h3>
-                    <p id="dashboardTotalProximos7Dias" class="dashboard-card-value text-yellow-600">R$ 0,00</p>
-                    <p id="dashboardProximos7DiasCount" class="dashboard-card-subtext text-yellow-500">0 contas</p>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div id="dashboardCardItensPendentes" class="dashboard-card clickable-card col-span-1 md:col-span-1">
-                    <h3 class="dashboard-card-title">Itens Pendentes na Lista</h3>
-                    <p id="dashboardItensPendentesValor" class="dashboard-card-value">0</p>
-                    <p class="dashboard-card-subtext">Clique para ver a lista</p>
-                </div>
-            </div>
-            <div>
-                <h3 class="text-lg font-semibold text-gray-700 mb-3">Próximas Contas a Vencer</h3>
-                <div id="dashboardProximasContasLista" class="space-y-2">
-                    <p id="dashboardProximasContasEmpty" class="text-sm text-gray-500">Nenhuma conta próxima do vencimento.</p>
-                </div>
-            </div>
-        </div>
+<script>
+    const THEME_KEY='randomMediaViewerTheme',SPEED_DIAL_CONFIG_KEY='randomMediaSpeedDialConfig';function applyPersistedTheme(){try{const s=localStorage.getItem(THEME_KEY);s==='light'?document.body.classList.add('light-theme'):document.body.classList.remove('light-theme')}catch(s){console.error('Failed to access localStorage for theme:',s)}}applyPersistedTheme();
+</script>
 
-        <div id="contasSection" class="card">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Contas a Pagar
-            </h2>
-            <form id="formConta" class="space-y-3 mb-6">
-                <div>
-                    <label for="descricaoConta" class="block text-sm font-medium text-gray-600 mb-1">Descrição</label>
-                    <input type="text" id="descricaoConta" class="input-field" placeholder="Ex: Aluguel, Internet" required>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="dataVencimento" class="block text-sm font-medium text-gray-600 mb-1">Vencimento</label>
-                        <input type="date" id="dataVencimento" class="input-field" required>
-                    </div>
-                    <div>
-                        <label for="valorConta" class="block text-sm font-medium text-gray-600 mb-1">Valor (R$)</label>
-                        <input type="number" id="valorConta" class="input-field" placeholder="Ex: 150.00" step="0.01" required>
-                    </div>
-                </div>
-                <div>
-                    <label for="recorrenciaConta" class="block text-sm font-medium text-gray-600 mb-1">Recorrência</label>
-                    <select id="recorrenciaConta" class="input-field">
-                        <option value="nao">Não (Única)</option>
-                        <option value="mensal">Mensal</option>
-                        <option value="bimestral">Bimestral</option>
-                        <option value="trimestral">Trimestral</option>
-                        <option value="semestral">Semestral</option>
-                        <option value="anual">Anual</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary w-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Adicionar Conta
-                </button>
-            </form>
-            <div id="listaContas"></div>
-            <div id="contasEmptyState" class="empty-state hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 9.75v2.25H2.25v-2.25H21.75zM2.25 12.75h19.5M11.25 2.25c-3.866 0-7.5 1.234-7.5 3v11.25c0 1.987 1.624 3.75 3.75 3.75h15c2.076 0 3.75-1.763 3.75-3.75V5.25c0-1.766-3.634-3-7.5-3S15.116 2.25 11.25 2.25z" />
-                </svg>
-                <p class="font-medium">Nenhuma conta cadastrada.</p>
-                <p class="text-sm">Adicione suas contas para começar a organizar!</p>
-            </div>
-        </div>
+<div id="cover-overlay-blur"></div>
+<div id="cover-overlay"></div>
+<h1 id="main-header-title">Random Media</h1>
 
-        <div id="comprasSection" class="card hidden">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                Lista de Compras
-            </h2>
-            <form id="formCompra" class="flex space-x-2 mb-1 relative">
-                <input type="text" id="itemCompra" class="input-field flex-grow" placeholder="Ex: 🍚 Arroz, 🥛 Leite" required autocomplete="off">
-                <button type="submit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-                </button>
-                 <div id="autocompleteSuggestions" class="autocomplete-suggestions hidden"></div>
-            </form>
-            <div id="listaItensCompra" class="mt-6"></div>
-            <div id="comprasEmptyState" class="empty-state hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="mx-auto">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-                <p class="font-medium">Sua lista de compras está vazia.</p>
-                <p class="text-sm">Adicione itens para não esquecer de nada!</p>
-            </div>
+<div id="caminho-sidebar">
+    <button id="caminho-sidebar-close-btn" title="Fechar Barra Lateral">&times;</button>
+    <h3 id="caminho-sidebar-title">Navegação Rápida</h3>
+    <ul id="caminho-sidebar-list">
+        </ul>
+</div>
+
+<div id="speed-dial-container">
+    <div id="speed-dial-title">Bem-vindo!</div>
+    <div id="lucky-feature-container" style="display: none;">
+        <div id="lucky-image-wrapper" style="display: none; cursor: pointer;">
+            <img id="lucky-image" src="#" alt="Imagem da sorte">
+            <div id="lucky-image-text" style="display: none;"></div>
         </div>
     </div>
+    <div id="speed-dial-subtitle">Para começar, selecione a pasta principal "Nucleo" que contém seus arquivos e as subpastas "Caminho".</div>
+    <button id="select-nucleo-folder">Selecionar Pasta "Nucleo"</button>
+    <div id="speed-dial-status" aria-live="polite"></div>
+    <div id="speed-dial-options"></div>
+    <input type="file" id="folder-input" webkitdirectory directory multiple>
+</div>
+<div class="controls-container">
+    <button id="return-to-speed-dial">Voltar ao Início</button>
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Pesquisar capas por prefixo..." autocomplete="off" aria-controls="search-suggestions" aria-haspopup="listbox">
+        <div id="search-suggestions" role="listbox"></div>
+    </div>
+    <button id="new-media">Nova Mídia Aleatória</button>
+    <button id="theme-toggle-button">Modo Claro/Escuro</button>
+</div>
+<div id="loading-indicator" aria-live="polite"></div>
+<div id="media-container"></div>
+<div id="fullscreen-media" onclick="closeFullscreenMedia()">
+     <button id="rotate-button" title="Rotacionar" onclick="rotateImage(event)">↻</button>
+     <img id="fullscreen-img" src="" alt="Imagem em Tela Cheia" style="display:none;" onclick="event.stopPropagation()">
+     <video id="fullscreen-video" controls style="display:none;" onclick="event.stopPropagation()"></video>
+</div>
 
-    <script>
-        const gunPeers = [
-            'https://gunjs.herokuapp.com/gun', // Original, may be unstable
-            'https://gun-manhattan.herokuapp.com/gun',
-            'https://peer.wallie.io/gun',
-            'https://gundb-relay-mlccl.ondigitalocean.app/gun',
-            // 'https://gun-us.herokuapp.com/gun',
-            // 'https://gun-eu.herokuapp.com/gun',
-        ];
-        const gun = Gun({ peers: gunPeers }); 
-        const gunContas = gun.get('organizador/contas/v2'); 
-        const gunItensCompra = gun.get('organizador/itensCompra/v2');
+<script>
+    'use strict';
+    let mediaFiles=[],mediaIndex=new Map(),initialViewHistory=[],sessionViewedPrefixes=new Set(),rotationAngle=0,zoomScale=1,imgOffsetX=0,imgOffsetY=0,isDragging=!1,dragStartX=0,dragStartY=0,dragStartOffsetX=0,dragStartOffsetY=0,isLoading=!1,currentOperationController=null,allSelectedFiles=null,rootDirName='',iconBlobUrls=new Map(),faviconBlobUrl=null,speedDialConfig=[];
+    let coverOverlayBlur,coverOverlay,mediaContainerEl,loadingIndicatorEl,newMediaButton,themeToggleButton,speedDialContainerEl,selectNucleoButtonEl,speedDialOptionsEl,speedDialStatusEl,faviconElement,folderInputEl,fullscreenMediaEl,fullscreenImgEl,fullscreenVideoEl,rotateButtonEl,searchInputEl,searchSuggestionsEl,draggedItemOriginalName=null,returnToSpeedDialButton, controlsContainerEl;
+    let luckyFeatureContainerEl, luckyImageWrapperEl, luckyImageEl, luckyImageTextEl;
+    let currentLuckyFileItem=null, luckyImageBlobUrl=null, luckyFeatureState='initial';
+    let mainHeaderTitleEl; // Variável para o H1 principal
 
-        const tabDashboard = document.getElementById('tabDashboard');
-        const tabContas = document.getElementById('tabContas');
-        const tabCompras = document.getElementById('tabCompras');
-        const dashboardSection = document.getElementById('dashboardSection');
-        const contasSection = document.getElementById('contasSection');
-        const comprasSection = document.getElementById('comprasSection');
-        const formConta = document.getElementById('formConta');
-        const descricaoContaInput = document.getElementById('descricaoConta');
-        const dataVencimentoInput = document.getElementById('dataVencimento');
-        const valorContaInput = document.getElementById('valorConta');
-        const recorrenciaContaInput = document.getElementById('recorrenciaConta');
-        const listaContasDiv = document.getElementById('listaContas');
-        const contasEmptyState = document.getElementById('contasEmptyState');
-        const formCompra = document.getElementById('formCompra');
-        const itemCompraInput = document.getElementById('itemCompra');
-        const listaItensCompraDiv = document.getElementById('listaItensCompra');
-        const comprasEmptyState = document.getElementById('comprasEmptyState');
-        const autocompleteSuggestionsDiv = document.getElementById('autocompleteSuggestions');
-        const dashboardTotalNaoPagoEl = document.getElementById('dashboardTotalNaoPago');
-        const dashboardTotalNaoPagoCountEl = document.getElementById('dashboardTotalNaoPagoCount');
-        const dashboardTotalVencidasEl = document.getElementById('dashboardTotalVencidas');
-        const dashboardVencidasCountEl = document.getElementById('dashboardVencidasCount');
-        const dashboardTotalProximos7DiasEl = document.getElementById('dashboardTotalProximos7Dias');
-        const dashboardProximos7DiasCountEl = document.getElementById('dashboardProximos7DiasCount');
-        const dashboardCardItensPendentesEl = document.getElementById('dashboardCardItensPendentes');
-        const dashboardItensPendentesValorEl = document.getElementById('dashboardItensPendentesValor');
-        const dashboardProximasContasListaEl = document.getElementById('dashboardProximasContasLista');
-        const dashboardProximasContasEmptyEl = document.getElementById('dashboardProximasContasEmpty');
+    // Sidebar elements
+    let caminhoSidebarEl, caminhoSidebarListEl, caminhoSidebarTitleEl, caminhoSidebarCloseBtnEl;
 
-        let localContas = {};
-        let localItensCompra = {};
+    const THUMB_ANIM_DELAY_STAGGER=90,COVER_DISPLAY_DELAY=1500,MAX_FILTERED_ITEMS=25,MAX_INITIAL_ITEMS=32,INITIAL_HISTORY_SIZE_LIMIT=MAX_INITIAL_ITEMS*3,ORIGINAIS_FOLDER_NAME='originais',CAPAS_FOLDER_NAME='.capas',CAMINHO_FOLDER_NAMES=Array.from({length:25},(_,i)=>`Caminho ${i+1}`),MAX_SEARCH_SUGGESTIONS=10,MIN_ZOOM=.1,MAX_ZOOM=20,ZOOM_SENSITIVITY=1.1;
+    const ICON_NAME_REGEX = /^(icon\d+|fav)\.(jpe?g|png|avif)$/i;
 
-        const itensComunsBrasil = [
-            '🍚 Arroz', '🫘 Feijão', '🍝 Macarrão', '🍾 Óleo de Cozinha', '🫒 Azeite de Oliva',
-            '🧂 Sal', '🍬 Açúcar', '☕ Café em Pó', '🥛 Leite', '🍞 Pão Francês',
-            '🧈 Manteiga', '🧀 Queijo Mussarela', '🍖 Presunto', '🥚 Ovos', '🍗 Frango (Peito)',
-            '🥩 Carne Bovina (Alcatra)', '🥓 Carne Suína (Lombo)', '🌭 Linguiça', '🐟 Peixe (Salmão)', '🥔 Batata',
-            '🧅 Cebola', '🧄 Alho', '🍅 Tomate', '🥕 Cenoura', '🥬 Alface',
-            '🥦 Brócolis', '🍌 Banana', '🍎 Maçã', '🍊 Laranja', '🍋 Limão',
-            '🥭 Manga', '🍉 Melancia', '🍇 Uva', '🍓 Morango', '🥑 Abacate',
-            '🌾 Farinha de Trigo', '🌽 Farinha de Milho (Fubá)', '🥣 Aveia em Flocos', '🥫 Milho Verde (Lata)', '🥫 Ervilha (Lata)',
-            '🥫 Molho de Tomate', '🫙 Maionese', '🌭 Ketchup', '🌭 Mostarda', '🍶 Vinagre',
-            '🧼 Sabão em Pó', '🧴 Detergente Líquido', '🧽 Água Sanitária', '🧻 Papel Higiênico', '🧼 Sabonete em Barra',
-            '🦷 Creme Dental', '🧴 Shampoo', '🧴 Condicionador', '🧽 Esponja de Louça', '🗑️ Saco de Lixo',
-            '🧃 Suco de Caixa', '🥤 Refrigerante', '💧 Água Mineral', '🍫 Chocolate em Barra', '🍪 Biscoito (Cream Cracker)'
-        ];
+    const delay=(m,s)=>new Promise((r,j)=>{if(s?.aborted)return j(new DOMException('Delay cancelled before start','AbortError'));const l=()=>{clearTimeout(t);j(new DOMException('Delay cancelled','AbortError'))},t=setTimeout(()=>{s?.removeEventListener('abort',l);r()},m);s?.addEventListener('abort',l,{once:!0})});
+    function isMediaFile(f){return /\.(jpe?g|png|gif|mp4|mkv|webm|avif)$/i.test(f)}
+    function isImageFile(f){return /\.(jpe?g|png|gif|avif)$/i.test(f)}
+    function getRandomMedia(m,c){const s=[...m],l=s.length,n=Math.min(c,l);if(n===0)return[];for(let i=l-1;i>=l-n;i--){const k=Math.floor(Math.random()*(i+1));[s[i],s[k]]=[s[k],s[i]]}return s.slice(l-n)}
+    function getFirstTwoWords(f){if(!f)return'';const n=f.substring(0,f.lastIndexOf('.'))||f,w=n.split(/[\s_.-]+/).filter(Boolean);return w.slice(0,2).join(' ').trim()||n}
+    function revokeItemResources(i){if(!i)return;if(i.blobUrl?.startsWith('blob:')){try{URL.revokeObjectURL(i.blobUrl)}catch(e){}}i.blobUrl=null;i.fileRef=null;i.loadSuccess=null;i.abortController?.abort();i.abortController=null}
+    function getRandomInitialMedia(availableFiles,count){if(!availableFiles||availableFiles.length===0)return[];const historySet=new Set(initialViewHistory);let eligibleFiles=availableFiles.filter(f=>f.relativePath&&!historySet.has(f.relativePath));if(eligibleFiles.length===0&&availableFiles.length>0){eligibleFiles=[...availableFiles]}if(eligibleFiles.length===0)return[];const prefixToFileMap=new Map();for(const file of eligibleFiles){if(!file.prefix)continue;if(!prefixToFileMap.has(file.prefix)){prefixToFileMap.set(file.prefix,[])}prefixToFileMap.get(file.prefix).push(file)}if(prefixToFileMap.size===0){const fallbackSelected=getRandomMedia(eligibleFiles,count);const fallbackPaths=fallbackSelected.map(f=>f.relativePath).filter(Boolean);initialViewHistory.unshift(...fallbackPaths);if(initialViewHistory.length>INITIAL_HISTORY_SIZE_LIMIT){initialViewHistory.length=INITIAL_HISTORY_SIZE_LIMIT}for(const file of fallbackSelected){if(file.prefix){sessionViewedPrefixes.add(file.prefix)}}return fallbackSelected}let G_eligiblePrefixes=Array.from(prefixToFileMap.keys());let H_preferredPrefixes=G_eligiblePrefixes.filter(p=>!sessionViewedPrefixes.has(p));let I_prefixesToUseThisRound;if(H_preferredPrefixes.length>0){I_prefixesToUseThisRound=H_preferredPrefixes}else{sessionViewedPrefixes.clear();I_prefixesToUseThisRound=G_eligiblePrefixes}for(let i=I_prefixesToUseThisRound.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[I_prefixesToUseThisRound[i],I_prefixesToUseThisRound[j]]=[I_prefixesToUseThisRound[j],I_prefixesToUseThisRound[i]]}const resultFiles=[];const selectedRelativePathsThisRun=new Set();for(const prefix of I_prefixesToUseThisRound){if(resultFiles.length>=count)break;const filesForThisPrefix=prefixToFileMap.get(prefix);if(filesForThisPrefix&&filesForThisPrefix.length>0){const K_availableFilesInPrefix=filesForThisPrefix.filter(f=>!selectedRelativePathsThisRun.has(f.relativePath));if(K_availableFilesInPrefix.length>0){const L_randomIndex=Math.floor(Math.random()*K_availableFilesInPrefix.length);const M_selectedFile=K_availableFilesInPrefix[L_randomIndex];resultFiles.push(M_selectedFile);selectedRelativePathsThisRun.add(M_selectedFile.relativePath);sessionViewedPrefixes.add(M_selectedFile.prefix)}}}if(resultFiles.length<count){const N_remainingEligibleFiles=eligibleFiles.filter(f=>!selectedRelativePathsThisRun.has(f.relativePath));if(N_remainingEligibleFiles.length>0){const O_neededCount=count-resultFiles.length;const P_additionalFiles=getRandomMedia(N_remainingEligibleFiles,O_neededCount);for(const file of P_additionalFiles){if(resultFiles.length>=count)break;resultFiles.push(file);selectedRelativePathsThisRun.add(file.relativePath);if(file.prefix)sessionViewedPrefixes.add(file.prefix)}}}const Q_resultPaths=resultFiles.map(f=>f.relativePath).filter(Boolean);initialViewHistory.unshift(...Q_resultPaths);if(initialViewHistory.length>INITIAL_HISTORY_SIZE_LIMIT){initialViewHistory.length=INITIAL_HISTORY_SIZE_LIMIT}return resultFiles}
+    function setSpeedDialStatus(m,e=!1){if(!speedDialStatusEl)return;speedDialStatusEl.textContent=m;speedDialStatusEl.classList.toggle('error',e)}
+    function beginOperation(){if(currentOperationController){currentOperationController.abort()}currentOperationController=new AbortController();isLoading=!0;if(selectNucleoButtonEl)selectNucleoButtonEl.disabled=!0;if(newMediaButton)newMediaButton.disabled=!0;if(themeToggleButton)themeToggleButton.disabled=!0;if(searchInputEl)searchInputEl.disabled=!0;if(returnToSpeedDialButton)returnToSpeedDialButton.disabled=!0;if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(i=>{i.style.pointerEvents='none';i.setAttribute('aria-disabled','true')})}return currentOperationController.signal}
+    function endOperation(s=!0){if(!isLoading&&!currentOperationController)return;isLoading=!1;currentOperationController=null;if(selectNucleoButtonEl)selectNucleoButtonEl.disabled=!1;const i=!document.body.classList.contains('initial-load')&&(!speedDialContainerEl||speedDialContainerEl.style.display==='none');if(returnToSpeedDialButton){returnToSpeedDialButton.style.display=i?'inline-block':'none';returnToSpeedDialButton.disabled=!1}if(i){const h=mediaFiles.some(t=>!t.isCoverFile),c=mediaFiles.some(t=>t.isCoverFile);if(searchInputEl)searchInputEl.disabled=!(allSelectedFiles&&c);if(newMediaButton){newMediaButton.style.display=h?'inline-block':'none';newMediaButton.disabled=!h}if(controlsContainerEl) controlsContainerEl.style.display = 'flex';
+    }else{if(newMediaButton)newMediaButton.style.display='none';if(searchInputEl)searchInputEl.disabled=!0;if(controlsContainerEl) controlsContainerEl.style.display = 'none'; hideCaminhoSidebar(); 
+    }if(themeToggleButton)themeToggleButton.disabled=!1;if(allSelectedFiles&&speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t=>{t.style.pointerEvents='auto';t.removeAttribute('aria-disabled')})}}
+    function cleanupUIState(){clearTimeout(window.coverDisplayTimeoutId||0);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(mediaContainerEl){mediaContainerEl.innerHTML='';mediaContainerEl.classList.remove('view-initial','view-filtered')}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}if(searchInputEl)searchInputEl.value=''; hideCaminhoSidebar();}
+    function buildMediaIndex(s){if(s.aborted)throw new DOMException('Index cancelled','AbortError');const i=isLoading;isLoading=!0;mediaIndex.clear();for(let k=0;k<mediaFiles.length;k++){if(k%500===0&&s.aborted){mediaIndex.clear();isLoading=i;throw new DOMException('Index aborted during build','AbortError')}const t=mediaFiles[k],p=t.prefix?.toLowerCase();if(!p)continue;if(!mediaIndex.has(p)){mediaIndex.set(p,{covers:[],regulars:[]})}const e=mediaIndex.get(p);(t.isCoverFile?e.covers:e.regulars).push(t)}isLoading=i}
+    async function ensureFileObjectForItem(i,s){if(s?.aborted)throw new DOMException('Cancelled during file check','AbortError');if(i.fileRef instanceof File){const x=i.name.split('.').pop()?.toLowerCase()||'',t={'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','gif':'image/gif','mp4':'video/mp4','webm':'video/webm','mkv':'video/x-matroska','avif':'image/avif'};i.type=t[x]||i.fileRef.type||'application/octet-stream';return!0}else{i.loadSuccess=!1;i.type='error/missing-ref';console.warn(`Missing file reference for item: ${i.name}`);return!1}}
+    async function loadBlobForItem(i,s){if(s?.aborted)throw new DOMException('Cancelled before blob load','AbortError');if(i.blobUrl&&i.loadSuccess===!0)return!0;if(i.loadSuccess===!1)return!1;i.abortController?.abort();i.abortController=new AbortController();const t=i.abortController.signal,c=AbortSignal.any?AbortSignal.any([s,t].filter(Boolean)):(s||t);i.loadSuccess='pending';try{if(!await ensureFileObjectForItem(i,c)){i.loadSuccess=!1;return!1}const f=i.fileRef;if(!f)throw new Error("Missing file reference unexpectedly");if(c?.aborted)throw new DOMException('Cancelled before blob creation','AbortError');if(i.blobUrl&&i.blobUrl.startsWith('blob:')){try{URL.revokeObjectURL(i.blobUrl)}catch(e){}}i.blobUrl=URL.createObjectURL(f);if(c?.aborted){URL.revokeObjectURL(i.blobUrl);i.blobUrl=null;throw new DOMException('Cancelled after blob creation','AbortError')}i.loadSuccess=!0;return!0}catch(e){if(e.name==='AbortError'){i.loadSuccess=null;i.blobUrl=null;if(i.blobUrl?.startsWith('blob:'))try{URL.revokeObjectURL(i.blobUrl)}catch(x){}}else{console.error("Error creating blob for",i.name,e);i.loadSuccess=!1;i.blobUrl=null}return!1}finally{i.abortController=null}}
+    async function loadCoverImageBlobUrl(i,s){if(s?.aborted)throw new DOMException('Cancelled loading cover blob','AbortError');if(!i?.isCoverFile)return null;try{return await loadBlobForItem(i,s)?i.blobUrl:null}catch(e){if(e.name==='AbortError')throw e;console.error("Non-abort error loading cover blob:",i.name,e);return null}}
+    function buildMediaElement(i){if(!i||i.isCoverFile)return null;const d=document.createElement('div');d.className='media-container-item';if(i.isOriginal){d.classList.add('is-original');const l=document.createElement('span');l.className='original-label';l.textContent='Original';d.appendChild(l)}const c=document.createElement('p');c.onclick=e=>{e.stopPropagation();if(!isLoading)displayGlobalMediaByPrefix(i.prefix)};c.title=i.name;let m;if(i.loadSuccess===!0&&i.blobUrl){if(i.type?.startsWith('image')){m=document.createElement('img');m.src=i.blobUrl;m.alt=i.name;m.loading='lazy'}else if(i.type?.startsWith('video')){m=document.createElement('video');m.src=i.blobUrl;m.muted=!0;m.preload='metadata';m.playsInline=!0}if(m){m.className='media-item';m.onclick=e=>{e.stopPropagation();showFullscreenMedia(i.blobUrl,i.type)};m.onerror=()=>{const p=document.createElement('div');p.className='media-error-placeholder';p.textContent='Render Err';if(m.parentNode)m.parentNode.replaceChild(p,m);i.loadSuccess=!1;revokeItemResources(i);c.textContent=`${i.prefix||'?'} (Render Err)`;d.classList.add('has-error')}}}if(!m){m=document.createElement('div');m.className='media-error-placeholder';let e="Erro";switch(i.loadSuccess){case!1:e=i.type==='error/missing-ref'?'No Ref':(i.type==='error/access'?'No Access':'Load Fail');break;case'pending':e='Carregando...';break;case null:e='Not Loaded';break}m.textContent=e;c.textContent=`${i.prefix||'?'} (${e})`;d.classList.add('has-error')}d.appendChild(m);c.textContent=c.textContent||i.prefix||'?';d.appendChild(c);return d}
+    async function ensureMediaReadyAndBuildElement(i,s){if(s.aborted)throw new DOMException('Cancelled before ensuring media readiness','AbortError');if(!i||i.isCoverFile)return null;if(!i.blobUrl&&i.loadSuccess!==!1){try{await loadBlobForItem(i,s)}catch(e){if(e.name==='AbortError')throw e}}if(s.aborted)throw new DOMException('Cancelled after trying to load blob','AbortError');return buildMediaElement(i)}
+    async function displayMedia(m,s,l){if(s.aborted)return;if(!mediaContainerEl)return;mediaContainerEl.innerHTML='';mediaContainerEl.classList.remove('view-initial','view-filtered');mediaContainerEl.classList.add(l?'view-initial':'view-filtered');mediaContainerEl.style.display='block';const t=(m||[]).filter(i=>!i.isCoverFile);if(t.length===0){const e="text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(!document.body.classList.contains('cover-active')){mediaContainerEl.innerHTML=`<p style="${e}">Nenhum item encontrado para exibir.</p>`}return}let a=[];const n=()=>a.forEach(clearTimeout);s.addEventListener('abort',n,{once:!0});const o=t.map(i=>ensureMediaReadyAndBuildElement(i,s)),r=(await Promise.allSettled(o)).filter(p=>p.status==='fulfilled'&&p.value).map(p=>p.value);if(!s.aborted&&r.length>0){const f=document.createDocumentFragment();r.forEach(e=>f.appendChild(e));mediaContainerEl.appendChild(f);r.forEach((e,d)=>{const p=setTimeout(()=>{if(!s.aborted&&e.isConnected){e.classList.add('visible')}},d*THUMB_ANIM_DELAY_STAGGER);a.push(p)})}else if(!s.aborted&&r.length===0&&t.length>0){const e="color:var(--error-text); text-align: center; width: 100%; column-span: all; padding: 20px 0;";mediaContainerEl.innerHTML=`<p style="${e}">Erro ao carregar itens de mídia.</p>`}s.removeEventListener('abort',n)}
+    
+    // Funções para Instagram Link
+    function getInstagramUsername(fileName) {
+        if (!fileName) return null;
+        const match = fileName.match(/@([a-zA-Z0-9_.]+)/);
+        return match ? match[1] : null;
+    }
 
-        const formatCurrency = (value) => parseFloat(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    function updateMainHeader(contentOrUsername) {
+        if (!mainHeaderTitleEl) mainHeaderTitleEl = document.getElementById('main-header-title');
+        if (!mainHeaderTitleEl) return;
 
-        function getSortedContasArray() {
-            return Object.values(localContas)
-                .filter(c => c && c.descricao)
-                .sort((a, b) => {
-                    if (a.paga !== b.paga) { return a.paga ? 1 : -1; }
-                    const dateA = a.dataVencimento ? new Date(a.dataVencimento + 'T00:00:00') : null;
-                    const dateB = b.dataVencimento ? new Date(b.dataVencimento + 'T00:00:00') : null;
-                    if (dateA && dateB) return dateA - dateB;
-                    if (dateA) return -1;
-                    if (dateB) return 1;
-                    return 0;
-                });
+        mainHeaderTitleEl.innerHTML = ''; 
+
+        if (contentOrUsername && contentOrUsername.startsWith('@')) {
+            const username = contentOrUsername.substring(1);
+            const instagramLink = document.createElement('a');
+            instagramLink.href = `https://www.instagram.com/${username}/`;
+            instagramLink.textContent = 'Instagram';
+            instagramLink.target = '_blank';
+            instagramLink.rel = 'noopener noreferrer';
+            instagramLink.classList.add('instagram-link');
+            mainHeaderTitleEl.appendChild(instagramLink);
+        } else {
+            mainHeaderTitleEl.textContent = contentOrUsername || 'Random Media';
         }
+    }
 
-        function getSortedItensCompraArray() {
-            return Object.values(localItensCompra)
-                .filter(i => i && i.nome)
-                .sort((a, b) => a.comprado - b.comprado);
-        }
+    async function displayFilteredMedia(p){if(!p||isLoading)return;if(searchInputEl&&searchInputEl.value)searchInputEl.value='';if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}const s=beginOperation();let c=null;let coverItemName = null; try{
+        updateMainHeader('Random Media'); // Reset header
+        resetLuckyFeature();if(speedDialContainerEl) speedDialContainerEl.style.display = 'none';
+        hideCaminhoSidebar(); 
+        clearTimeout(window.coverDisplayTimeoutId||0);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(loadingIndicatorEl){loadingIndicatorEl.textContent=`Filtrando por "${p}"...`;loadingIndicatorEl.style.display='block'}if(s.aborted)throw new DOMException('Cancelled early','AbortError');const e=mediaIndex.get(p.toLowerCase());if(!e||(!e.regulars?.length&&!e.covers?.length)){console.warn(`Prefix "${p}" not found in index.`);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Prefixo "${p}" não encontrado na pasta selecionada. Tente outro.`,!1);endOperation(!0);return}const o=e.covers||[];let r=e.regulars||[];if(r.length>MAX_FILTERED_ITEMS){r=getRandomMedia(r,MAX_FILTERED_ITEMS)}if(r.length===0){console.warn(`No regular media found for prefix "${p}", only covers or empty regulars list.`);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(mediaContainerEl){mediaContainerEl.innerHTML='';mediaContainerEl.style.display='none'}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Nenhum item regular encontrado para "${p}" neste Caminho. Selecione outro.`,!1);endOperation(!0);return}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(mediaContainerEl)mediaContainerEl.style.display='block';if(controlsContainerEl)controlsContainerEl.style.display='flex';document.body.classList.remove('initial-load');if(o.length>0){const u=o.filter(i=>i.loadSuccess!==!1);if(u.length>0){const t=u[Math.floor(Math.random()*u.length)];c=await loadCoverImageBlobUrl(t,s); coverItemName = t.name;}}
         
-        window.showTab = function(tabName) {
-            dashboardSection.classList.add('hidden');
-            contasSection.classList.add('hidden');
-            comprasSection.classList.add('hidden');
-            tabDashboard.classList.remove('active');
-            tabContas.classList.remove('active');
-            tabCompras.classList.remove('active');
-            autocompleteSuggestionsDiv.classList.add('hidden');
-            autocompleteSuggestionsDiv.innerHTML = '';
-
-            if (tabName === 'dashboard') {
-                dashboardSection.classList.remove('hidden');
-                tabDashboard.classList.add('active');
-                renderizarDashboard(); 
-            } else if (tabName === 'contas') {
-                contasSection.classList.remove('hidden');
-                tabContas.classList.add('active');
-            } else if (tabName === 'compras') {
-                comprasSection.classList.remove('hidden');
-                tabCompras.classList.add('active');
-            }
+        if (coverItemName) { // Update header if cover is shown
+            const username = getInstagramUsername(coverItemName);
+            if (username) updateMainHeader('@' + username);
         }
+
+        if(s.aborted)throw new DOMException('Cancelled during cover load','AbortError');if(c){if(coverOverlayBlur){coverOverlayBlur.style.backgroundImage=`url('${c}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlayBlur.classList.add('visible')})}if(coverOverlay){coverOverlay.style.backgroundImage=`url('${c}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlay.classList.add('visible')})}if(document.body&&!s.aborted)document.body.classList.add('cover-active');window.coverDisplayTimeoutId=setTimeout(async()=>{if(s.aborted)return;try{await displayMedia(r,s,!1);endOperation(!0)}catch(d){if(d.name!=='AbortError'){console.error("Error during post-cover media display:",d);setSpeedDialStatus(`Erro ao exibir mídia para "${p}" após a capa.`,!0)}endOperation(!1)}},COVER_DISPLAY_DELAY)}else{await displayMedia(r,s,!1);endOperation(!0)}}catch(e){if(e.name!=='AbortError'){console.error(`Error filtering for prefix "${p}":`,e);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Erro ao filtrar por "${p}". Verifique o console.`,!0);endOperation(!1)}else{console.log(`Filtering for "${p}" was cancelled.`);if(!isLoading){cleanupUIState();if(speedDialContainerEl)speedDialContainerEl.style.display='flex';if(controlsContainerEl)controlsContainerEl.style.display='none';if(document.body)document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Filtragem por "${p}" cancelada.`,!1);endOperation(!1)}}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(document.body&&!document.body.classList.contains('cover-active')){document.body.classList.remove('cover-active')}}}
+    
+    async function displayGlobalMediaByPrefix(t){if(!t||isLoading||!allSelectedFiles)return;if(searchInputEl&&searchInputEl.value)searchInputEl.value='';if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}const s=beginOperation();let g=null;let coverItemName = null; try{
+        updateMainHeader('Random Media'); // Reset header
+        resetLuckyFeature(); if(speedDialContainerEl) speedDialContainerEl.style.display = 'none';
+        clearTimeout(window.coverDisplayTimeoutId||0);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(loadingIndicatorEl){loadingIndicatorEl.textContent=`Pesquisando por "${t}" em todos os Caminhos...`;loadingIndicatorEl.style.display='block'}if(s.aborted)throw new DOMException('Cancelled early (global search)','AbortError');const o=[],r=[];const a=t.toLowerCase();const b=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}/`:`${CAPAS_FOLDER_NAME}/`;for(const f of allSelectedFiles){if(s.aborted)throw new DOMException('Scan Cancelled during file iteration (global search)','AbortError');const l=f.webkitRelativePath?.replace(/^\.\//,'');if(!l||!isMediaFile(f.name))continue;const p=l.split('/');if(p.length<(rootDirName?2:1))continue;const n=p[p.length-1],h=getFirstTwoWords(n);if(h.toLowerCase()!==a)continue;const k=p.slice(0,-1),S=k.join('/')+(k.length>0?'/':'');let C=!1,R=!1,O=!1;if(S===b){C=!0}else{for(const x of CAMINHO_FOLDER_NAMES){const N=rootDirName?`${rootDirName}/${x}/`:`${x}/`;if(S.startsWith(N)){R=!0;O=k.some(e=>e.toLowerCase()===ORIGINAIS_FOLDER_NAME);break}}}if(C||R){const M={name:n,fileRef:f,relativePath:l,isCoverFile:C,isOriginal:O,prefix:h,blobUrl:null,type:null,loadSuccess:null,abortController:null};if(C){o.push(M)}else if(R){r.push(M)}}}if(r.length===0&&o.length===0){console.warn(`Prefix "${t}" not found anywhere.`);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Prefixo "${t}" não encontrado em nenhum Caminho. Tente outro.`,!1);endOperation(!0);return}let F=r;if(F.length>MAX_FILTERED_ITEMS){F=getRandomMedia(F,MAX_FILTERED_ITEMS)}if(F.length===0){console.warn(`No regular media found globally for prefix "${t}", only covers or empty regulars list.`);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(mediaContainerEl){mediaContainerEl.innerHTML='';mediaContainerEl.style.display='none'}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Nenhum item regular encontrado para "${t}" em todos os Caminhos. Selecione outro.`,!1);endOperation(!0);return}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(mediaContainerEl)mediaContainerEl.style.display='block';if(controlsContainerEl)controlsContainerEl.style.display='flex';document.body.classList.remove('initial-load');if(o.length>0){const u=o.filter(i=>i.loadSuccess!==!1);if(u.length>0){const m=u[Math.floor(Math.random()*u.length)];g=await loadCoverImageBlobUrl(m,s); coverItemName = m.name;}}
         
-        function renderizarDashboard() {
-            const contasArray = getSortedContasArray();
-            const itensCompraArray = getSortedItensCompraArray();
-            let totalValorNaoPago = 0, countContasNaoPagas = 0;
-            let totalValorVencidas = 0, countContasVencidas = 0;
-            let totalValorProximos7Dias = 0, countContasProximos7Dias = 0;
-            const proximas3ContasParaVencer = [];
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0); 
-            const proximos7DiasDataLimite = new Date(hoje);
-            proximos7DiasDataLimite.setDate(hoje.getDate() + 7);
-            const contasNaoPagas = contasArray.filter(c => !c.paga);
-            contasNaoPagas.forEach(conta => {
-                const valorConta = parseFloat(conta.valor) || 0;
-                totalValorNaoPago += valorConta;
-                countContasNaoPagas++;
-                if (conta.dataVencimento) {
-                    const dataVencimento = new Date(conta.dataVencimento + 'T00:00:00'); 
-                    if (dataVencimento < hoje) { 
-                        totalValorVencidas += valorConta;
-                        countContasVencidas++;
-                    }
-                    if (dataVencimento >= hoje && dataVencimento <= proximos7DiasDataLimite) { 
-                        totalValorProximos7Dias += valorConta;
-                        countContasProximos7Dias++;
-                    }
-                }
-            });
-            const contasNaoPagasOrdenadas = [...contasNaoPagas]
-                .filter(c => c.dataVencimento) 
-                .sort((a, b) => new Date(a.dataVencimento + 'T00:00:00') - new Date(b.dataVencimento + 'T00:00:00'));
-            for (let i = 0; i < Math.min(3, contasNaoPagasOrdenadas.length); i++) {
-                 const conta = contasNaoPagasOrdenadas[i];
-                 if (new Date(conta.dataVencimento + 'T00:00:00') >= hoje) {
-                    proximas3ContasParaVencer.push(conta);
-                 }
-            }
-            dashboardTotalNaoPagoEl.textContent = formatCurrency(totalValorNaoPago);
-            dashboardTotalNaoPagoCountEl.textContent = `${countContasNaoPagas} conta${countContasNaoPagas !== 1 ? 's' : ''}`;
-            dashboardTotalVencidasEl.textContent = formatCurrency(totalValorVencidas);
-            dashboardVencidasCountEl.textContent = `${countContasVencidas} conta${countContasVencidas !== 1 ? 's' : ''} vencida${countContasVencidas !== 1 ? 's' : ''}`;
-            dashboardTotalProximos7DiasEl.textContent = formatCurrency(totalValorProximos7Dias);
-            dashboardProximos7DiasCountEl.textContent = `${countContasProximos7Dias} conta${countContasProximos7Dias !== 1 ? 's' : ''} nos próximos 7 dias`;
-            dashboardProximasContasListaEl.innerHTML = ''; 
-            if (proximas3ContasParaVencer.length > 0) {
-                dashboardProximasContasEmptyEl.classList.add('hidden');
-                proximas3ContasParaVencer.forEach(conta => {
-                    const dataFormatada = new Date(conta.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-                    dashboardProximasContasListaEl.innerHTML += `
-                        <div class="list-item !py-2">
-                            <div class="flex-grow"><span class="font-medium text-sm text-gray-700">${conta.descricao}</span><span class="block text-xs text-gray-500">Vence: ${dataFormatada}</span></div>
-                            <span class="text-sm font-semibold text-gray-800">${formatCurrency(conta.valor)}</span>
-                        </div>`;
-                });
-            } else {
-                 dashboardProximasContasEmptyEl.classList.remove('hidden');
-            }
-            const itensPendentes = itensCompraArray.filter(item => !item.comprado).length;
-            dashboardItensPendentesValorEl.textContent = itensPendentes; 
+        if (coverItemName) { // Update header if cover is shown
+            const username = getInstagramUsername(coverItemName);
+            if (username) updateMainHeader('@' + username);
         }
 
-        if (dashboardCardItensPendentesEl) { 
-            dashboardCardItensPendentesEl.addEventListener('click', () => showTab('compras'));
-        }
-
-        function formatarRecorrencia(tipo) {
-            const map = { mensal: 'Mensal', bimestral: 'Bimestral', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
-            return map[tipo] || '';
-        }
-
-        function renderizarContas() {
-            const contasArray = getSortedContasArray();
-            listaContasDiv.innerHTML = '';
-            if (contasArray.length === 0) {
-                contasEmptyState.classList.remove('hidden');
-                listaContasDiv.classList.add('hidden');
-            } else {
-                contasEmptyState.classList.add('hidden');
-                listaContasDiv.classList.remove('hidden');
-                contasArray.forEach(conta => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = `list-item list-item-enter ${conta.paga ? 'completed opacity-70' : ''}`;
-                    const valorFormatado = formatCurrency(conta.valor);
-                    const dataFormatada = conta.dataVencimento ? new Date(conta.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'N/A';
-                    let infoRecorrencia = (conta.recorrenciaTipo && conta.recorrenciaTipo !== 'nao') ? `<span class="text-xs text-blue-500 block">Recorrência: ${formatarRecorrencia(conta.recorrenciaTipo)}</span>` : '';
-                    itemDiv.innerHTML = `
-                        <div class="flex-grow pr-2">
-                            <span class="font-medium text-gray-800 block">${conta.descricao}</span>
-                            <span class="text-sm text-gray-500 block">Venc: ${dataFormatada} - ${valorFormatado}</span>
-                            ${infoRecorrencia}
-                        </div>
-                        <div class="flex space-x-2">
-                            <button onclick="togglePaga('${conta.id}')" class="btn-icon" title="${conta.paga ? 'Marcar como não paga' : 'Marcar como paga'}">
-                                ${conta.paga ?
-                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
-                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'}
-                            </button>
-                            <button onclick="removerConta('${conta.id}')" class="btn-icon" title="Remover conta">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-                        </div>`;
-                    listaContasDiv.appendChild(itemDiv);
+        if(s.aborted)throw new DOMException('Cancelled during global cover load','AbortError');if(g){if(coverOverlayBlur){coverOverlayBlur.style.backgroundImage=`url('${g}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlayBlur.classList.add('visible')})}if(coverOverlay){coverOverlay.style.backgroundImage=`url('${g}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlay.classList.add('visible')})}if(document.body&&!s.aborted)document.body.classList.add('cover-active');window.coverDisplayTimeoutId=setTimeout(async()=>{if(s.aborted)return;try{await displayMedia(F,s,!1);endOperation(!0)}catch(d){if(d.name!=='AbortError'){console.error("Error during post-cover global media display:",d);setSpeedDialStatus(`Erro ao exibir mídia global para "${t}" após a capa.`,!0)}endOperation(!1)}},COVER_DISPLAY_DELAY)}else{await displayMedia(F,s,!1);endOperation(!0)}}catch(e){if(e.name!=='AbortError'){console.error(`Error global filtering for prefix "${t}":`,e);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Erro ao filtrar globalmente por "${t}". Verifique o console.`,!0);endOperation(!1)}else{console.log(`Global filtering for "${t}" was cancelled.`);if(!isLoading){cleanupUIState();if(speedDialContainerEl)speedDialContainerEl.style.display='flex';if(controlsContainerEl)controlsContainerEl.style.display='none';if(document.body)document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Filtragem global por "${t}" cancelada.`,!1);endOperation(!1)}}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(document.body&&!document.body.classList.contains('cover-active')){document.body.classList.remove('cover-active')}}}
+    function updateFullscreenTransform(){if(!fullscreenImgEl)return;fullscreenImgEl.style.transform=`translate(${imgOffsetX}px, ${imgOffsetY}px) rotate(${rotationAngle}deg) scale(${zoomScale})`}
+    function showFullscreenMedia(s,t){if(!fullscreenMediaEl||!fullscreenImgEl||!fullscreenVideoEl||!rotateButtonEl)return;rotationAngle=0;zoomScale=1;imgOffsetX=0;imgOffsetY=0;isDragging=!1;fullscreenVideoEl.pause();fullscreenVideoEl.removeAttribute('src');if(fullscreenVideoEl.readyState>0){try{fullscreenVideoEl.load()}catch(e){}}fullscreenImgEl.removeAttribute('src');fullscreenImgEl.style.display='none';fullscreenVideoEl.style.display='none';fullscreenImgEl.removeEventListener('wheel',handleWheelZoom);fullscreenImgEl.removeEventListener('mousedown',handleMouseDownDrag);document.removeEventListener('mousemove',handleMouseMoveDrag);document.removeEventListener('mouseup',handleMouseUpDrag);fullscreenImgEl.onload=null;fullscreenImgEl.onerror=null;if(t?.startsWith('image')){fullscreenImgEl.style.display='block';rotateButtonEl.style.display='block';updateFullscreenTransform();fullscreenImgEl.onload=()=>{const c=fullscreenMediaEl.clientWidth*.9,h=fullscreenMediaEl.clientHeight*.9,i=fullscreenImgEl.naturalWidth/fullscreenImgEl.naturalHeight,r=c/h;let l;if(i>r){l=c/fullscreenImgEl.naturalWidth}else{l=h/fullscreenImgEl.naturalHeight}zoomScale=Math.min(l,1);fullscreenImgEl.style.width=`${fullscreenImgEl.naturalWidth*zoomScale}px`;fullscreenImgEl.style.height=`${fullscreenImgEl.naturalHeight*zoomScale}px`;imgOffsetX=0;imgOffsetY=0;updateFullscreenTransform();fullscreenImgEl.style.width='auto';fullscreenImgEl.style.height='auto';fullscreenImgEl.onload=null};fullscreenImgEl.onerror=()=>{console.error("Falha ao carregar imagem em tela cheia:",s);closeFullscreenMedia();fullscreenImgEl.onload=null;fullscreenImgEl.onerror=null};fullscreenImgEl.src=s;fullscreenImgEl.addEventListener('wheel',handleWheelZoom,{passive:!1});fullscreenImgEl.addEventListener('mousedown',handleMouseDownDrag)}else if(t?.startsWith('video')){fullscreenVideoEl.src=s;fullscreenVideoEl.style.display='block';rotateButtonEl.style.display='none';fullscreenVideoEl.play().catch(e=>console.warn("Autoplay bloqueado:",e))}else{console.warn("Tipo de mídia não suportado para fullscreen:",t);return}fullscreenMediaEl.style.display='flex'}
+    function handleWheelZoom(e){e.preventDefault();e.stopPropagation();if(!fullscreenImgEl||fullscreenImgEl.style.display==='none')return;const r=fullscreenImgEl.getBoundingClientRect();if(r.width===0||r.height===0)return;const d=e.deltaY,s=d<0?ZOOM_SENSITIVITY:1/ZOOM_SENSITIVITY,o=zoomScale;let n=o*s;n=Math.max(MIN_ZOOM,Math.min(n,MAX_ZOOM));if(n===o)return;const m=e.clientX,y=e.clientY,cX=r.left+r.width/2,cY=r.top+r.height/2,pX_B=m-cX,pY_B=y-cY,pX_A=pX_B*(n/o),pY_A=pY_B*(n/o),dX=pX_B-pX_A,dY=pY_B-pY_A;imgOffsetX+=dX;imgOffsetY+=dY;zoomScale=n;requestAnimationFrame(updateFullscreenTransform)}
+    function handleMouseDownDrag(e){e.preventDefault();e.stopPropagation();if(e.button!==0||!fullscreenImgEl||fullscreenImgEl.style.display==='none')return;isDragging=!0;dragStartX=e.clientX;dragStartY=e.clientY;dragStartOffsetX=imgOffsetX;dragStartOffsetY=imgOffsetY;fullscreenImgEl.classList.add('grabbing');fullscreenImgEl.style.transition='none';document.addEventListener('mousemove',handleMouseMoveDrag);document.addEventListener('mouseup',handleMouseUpDrag)}
+    function handleMouseMoveDrag(e){if(!isDragging)return;e.preventDefault();e.stopPropagation();const cX=e.clientX,cY=e.clientY,dX=cX-dragStartX,dY=cY-dragStartY;imgOffsetX=dragStartOffsetX+dX;imgOffsetY=dragStartOffsetY+dY;requestAnimationFrame(updateFullscreenTransform)}
+    function handleMouseUpDrag(e){if(!isDragging||e.button!==0)return;e.preventDefault();e.stopPropagation();isDragging=!1;fullscreenImgEl.classList.remove('grabbing');fullscreenImgEl.style.transition='';document.removeEventListener('mousemove',handleMouseMoveDrag);document.removeEventListener('mouseup',handleMouseUpDrag)}
+    function rotateImage(e){e.stopPropagation();if(!fullscreenImgEl||isDragging)return;const rB=fullscreenImgEl.getBoundingClientRect(),cXB=rB.left+rB.width/2,cYB=rB.top+rB.height/2;rotationAngle=(rotationAngle+90)%360;updateFullscreenTransform();requestAnimationFrame(()=>{const rA=fullscreenImgEl.getBoundingClientRect(),cXA=rA.left+rA.width/2,cYA=rA.top+rA.height/2,dX=cXB-cXA,dY=cYB-cYA;imgOffsetX+=dX;imgOffsetY+=dY;updateFullscreenTransform()})}
+    function closeFullscreenMedia(){if(!fullscreenMediaEl||!fullscreenVideoEl||!fullscreenImgEl)return;fullscreenMediaEl.style.display='none';fullscreenVideoEl.pause();fullscreenVideoEl.removeAttribute('src');if(fullscreenVideoEl.readyState>0){try{fullscreenVideoEl.load()}catch(e){console.warn("Error trying to unload video:",e)}}fullscreenImgEl.removeAttribute('src');fullscreenImgEl.onload=null;fullscreenImgEl.onerror=null;fullscreenImgEl.style.transform='none';fullscreenImgEl.style.width='auto';fullscreenImgEl.style.height='auto';fullscreenImgEl.removeEventListener('wheel',handleWheelZoom);fullscreenImgEl.removeEventListener('mousedown',handleMouseDownDrag);document.removeEventListener('mousemove',handleMouseMoveDrag);document.removeEventListener('mouseup',handleMouseUpDrag);isDragging=!1;fullscreenImgEl.classList.remove('grabbing');fullscreenImgEl.style.display='none'}
+    function getIconBaseName(o){const m=o.match(/\d+$/);return m?`icon${m[0]}`:`icon_${o.replace(/[^a-z0-9]/gi,'_')}`}
+    function findFileByPath(f,r){if(!f)return null;const n=r.replace(/^\.\//,'');for(const i of f){const p=i.webkitRelativePath?.replace(/^\.\//,'');if(p===n){return i}}return null}
+    function revokeGeneratedBlobUrls(){let c=0;for(const u of iconBlobUrls.values()){if(u){try{URL.revokeObjectURL(u);c++}catch(e){}}}iconBlobUrls.clear();if(faviconBlobUrl){try{URL.revokeObjectURL(faviconBlobUrl)}catch(e){}}faviconBlobUrl=null;if(faviconElement)faviconElement.href='#'}
+    function resetSpeedDialIcons(){revokeGeneratedBlobUrls();if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(i=>{i.classList.remove('icon-error');const m=i.querySelector('img.speed-dial-icon');if(m){m.src='';m.classList.remove('loaded')}})}}
+    function resetFavicon(){if(faviconBlobUrl){try{URL.revokeObjectURL(faviconBlobUrl)}catch(e){}}faviconBlobUrl=null;if(faviconElement)faviconElement.href='#'}
+    async function loadSpecificIcons(f){if(!speedDialOptionsEl||!f)return;let a=!1;const l=speedDialConfig.map(async c=>{const i=speedDialOptionsEl.querySelector(`.speed-dial-item[data-caminho="${c.originalName}"]`);if(!i)return;const b=getIconBaseName(c.originalName),e=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}`:`${CAPAS_FOLDER_NAME}`,pA=`${e}/${b}.avif`,pJ=`${e}/${b}.jpg`,pN=`${e}/${b}.png`;let I=findFileByPath(f,pA)||findFileByPath(f,pJ)||findFileByPath(f,pN);const m=i.querySelector('img.speed-dial-icon');if(I&&m){try{const o=iconBlobUrls.get(c.originalName);if(o){try{URL.revokeObjectURL(o)}catch(e){}}const u=URL.createObjectURL(I);iconBlobUrls.set(c.originalName,u);m.src=u;m.alt=`Ícone para ${c.displayName}`;m.onload=()=>m.classList.add('loaded');m.onerror=()=>{i.classList.add('icon-error');URL.revokeObjectURL(u);iconBlobUrls.delete(c.originalName);console.error(`Failed to load icon image: ${I?.name}`)};i.classList.remove('icon-error');a=!0}catch(r){i.classList.add('icon-error');if(m)m.src='';console.error("Error creating blob for icon:",c.originalName,r)}}else{i.classList.add('icon-error');if(m)m.src=''}});await Promise.allSettled(l);const M=`Pasta "${rootDirName}" carregada (${f?.length||0} arquivos). Escolha um Caminho:`;setSpeedDialStatus(M)}
+    async function loadSpecificFavicon(f){if(!faviconElement||!f)return;const e=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}`:`${CAPAS_FOLDER_NAME}`,fA=`${e}/fav.avif`,fJ=`${e}/fav.jpg`,F=findFileByPath(f,fA)||findFileByPath(f,fJ);resetFavicon();if(F){try{faviconBlobUrl=URL.createObjectURL(F);faviconElement.href=faviconBlobUrl}catch(r){console.error("Error creating blob URL for favicon:",r);resetFavicon()}}}
+    
+    function getLuckyCoverCandidates() {
+        if (!allSelectedFiles) return [];
+        const capasFolderPath = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`;
+        const candidates = [];
+        for (const file of allSelectedFiles) {
+            const relativePath = file.webkitRelativePath?.replace(/^\.\//, '');
+            const fileName = file.name;
+            if (relativePath && 
+                relativePath.startsWith(capasFolderPath) &&
+                isImageFile(fileName) && 
+                !ICON_NAME_REGEX.test(fileName)
+            ) {
+                candidates.push({
+                    fileRef: file,
+                    prefix: getFirstTwoWords(fileName),
+                    name: fileName,
+                    relativePath: relativePath
                 });
             }
-            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
         }
+        return candidates;
+    }
 
-        formConta.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const novaConta = {
-                id: crypto.randomUUID(), 
-                descricao: descricaoContaInput.value.trim(),
-                dataVencimento: dataVencimentoInput.value,
-                valor: valorContaInput.value,
-                recorrenciaTipo: recorrenciaContaInput.value,
-                paga: false
-            };
-            if (novaConta.descricao && novaConta.dataVencimento && novaConta.valor) {
-                gunContas.get(novaConta.id).put(novaConta); 
-                descricaoContaInput.value = '';
-                valorContaInput.value = '';
-                recorrenciaContaInput.value = 'nao';
-            } else {
-                if(!document.getElementById('formContaError')) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.id = 'formContaError';
-                    errorDiv.className = 'text-red-500 text-sm mt-2';
-                    errorDiv.textContent = 'Por favor, preencha todos os campos obrigatórios: Descrição, Vencimento e Valor.';
-                    formConta.appendChild(errorDiv);
-                    setTimeout(() => errorDiv.remove(), 3000);
-                }
-            }
-        });
-
-        window.removerConta = function(contaId) {
-            gunContas.get(contaId).put(null); 
+    function resetLuckyFeature() {
+        if (luckyImageBlobUrl) {
+            try { URL.revokeObjectURL(luckyImageBlobUrl); } catch (e) { console.warn("Error revoking lucky blob", e); }
+            luckyImageBlobUrl = null;
         }
-
-        window.togglePaga = function(contaId) {
-            gunContas.get(contaId).once(conta => {
-                if (conta) {
-                    let updatedConta = { ...conta, paga: !conta.paga };
-                    if (updatedConta.paga && updatedConta.recorrenciaTipo && updatedConta.recorrenciaTipo !== 'nao') {
-                        let dataAtualVencimento = new Date(updatedConta.dataVencimento + 'T00:00:00');
-                        let novaDataVencimento;
-                        switch (updatedConta.recorrenciaTipo) {
-                            case 'mensal': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 1)); break;
-                            case 'bimestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 2)); break;
-                            case 'trimestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 3)); break;
-                            case 'semestral': novaDataVencimento = new Date(dataAtualVencimento.setMonth(dataAtualVencimento.getMonth() + 6)); break;
-                            case 'anual': novaDataVencimento = new Date(dataAtualVencimento.setFullYear(dataAtualVencimento.getFullYear() + 1)); break;
-                            default: novaDataVencimento = new Date(updatedConta.dataVencimento + 'T00:00:00'); break;
-                        }
-                        updatedConta.dataVencimento = novaDataVencimento.toISOString().split('T')[0];
-                        updatedConta.paga = false; 
-                    }
-                    gunContas.get(contaId).put(updatedConta);
-                }
-            });
+        currentLuckyFileItem = null;
+        if (luckyImageEl) luckyImageEl.src = "#";
+        if (luckyImageTextEl) {
+            luckyImageTextEl.textContent = '';
+            luckyImageTextEl.style.display = 'none';
         }
-
-        function renderizarItensCompra() {
-            const itensCompraArray = getSortedItensCompraArray();
-            listaItensCompraDiv.innerHTML = '';
-            if (itensCompraArray.length === 0) {
-                comprasEmptyState.classList.remove('hidden');
-                listaItensCompraDiv.classList.add('hidden');
-            } else {
-                comprasEmptyState.classList.add('hidden');
-                listaItensCompraDiv.classList.remove('hidden');
-                itensCompraArray.forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = `list-item list-item-enter ${item.comprado ? 'completed opacity-70' : ''}`;
-                    itemDiv.innerHTML = `
-                        <span class="flex-grow pr-2 text-gray-800">${item.nome}</span>
-                        <div class="flex space-x-2">
-                            <button onclick="toggleComprado('${item.id}')" class="btn-icon" title="${item.comprado ? 'Marcar como não comprado' : 'Marcar como comprado'}">
-                                ${item.comprado ?
-                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
-                                    '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'}
-                            </button>
-                            <button onclick="removerItemCompra('${item.id}')" class="btn-icon" title="Remover item">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon text-gray-400 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            </button>
-                        </div>`;
-                    listaItensCompraDiv.appendChild(itemDiv);
-                });
-            }
-            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
+        if (luckyImageWrapperEl) {
+            luckyImageWrapperEl.style.display = 'none';
         }
-
-        formCompra.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const valorInput = itemCompraInput.value.trim();
-            const nomeLimpo = valorInput.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim();
-            if (nomeLimpo) {
-                const itemExistente = getSortedItensCompraArray().find(item => 
-                    item.nome.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '').trim().toLowerCase() === nomeLimpo.toLowerCase()
-                );
-                if (!itemExistente) {
-                     const novoItem = {
-                        id: crypto.randomUUID(), 
-                        nome: valorInput, 
-                        comprado: false
-                    };
-                    gunItensCompra.get(novoItem.id).put(novoItem); 
-                } else {
-                    // console.log("Item já existe na lista:", nomeLimpo);
-                }
-                itemCompraInput.value = '';
-                autocompleteSuggestionsDiv.innerHTML = '';
-                autocompleteSuggestionsDiv.classList.add('hidden');
-            }
-        });
-
-        window.removerItemCompra = function(itemId) {
-            gunItensCompra.get(itemId).put(null); 
+        if (luckyFeatureContainerEl) {
+             luckyFeatureContainerEl.style.display = 'none';
         }
-
-        window.toggleComprado = function(itemId) {
-            gunItensCompra.get(itemId).once(item => {
-                if (item) {
-                    const updatedItem = { ...item, comprado: !item.comprado };
-                    gunItensCompra.get(itemId).put(updatedItem);
-                }
-            });
+        if (speedDialContainerEl) {
+            speedDialContainerEl.style.removeProperty('--speed-dial-background-image-url');
         }
-        
-        itemCompraInput.addEventListener('input', function() {
-            const inputText = this.value.toLowerCase();
-            autocompleteSuggestionsDiv.innerHTML = '';
-            if (inputText.length === 0) {
-                autocompleteSuggestionsDiv.classList.add('hidden');
+        luckyFeatureState = 'initial';
+    }
+
+    async function activateLuckyFeature() {
+        if (isLoading || !allSelectedFiles || !speedDialContainerEl || speedDialContainerEl.style.display === 'none') {
+            resetLuckyFeature();
+            return;
+        }
+        resetLuckyFeature(); 
+        const s = currentOperationController ? currentOperationController.signal : null;
+
+        try {
+            const candidates = getLuckyCoverCandidates();
+            if (candidates.length === 0) {
+                if(luckyFeatureContainerEl) luckyFeatureContainerEl.style.display = 'none';
                 return;
             }
-            const suggestions = itensComunsBrasil.filter(item => item.toLowerCase().includes(inputText));
-            if (suggestions.length > 0) {
-                autocompleteSuggestionsDiv.style.width = `${itemCompraInput.offsetWidth}px`;
-                autocompleteSuggestionsDiv.style.top = `${itemCompraInput.offsetHeight}px`;
-                autocompleteSuggestionsDiv.style.left = `0px`;
-                suggestions.slice(0, 10).forEach(suggestion => {
-                    const div = document.createElement('div');
-                    div.textContent = suggestion;
-                    div.addEventListener('click', function() {
-                        itemCompraInput.value = suggestion;
-                        autocompleteSuggestionsDiv.innerHTML = '';
-                        autocompleteSuggestionsDiv.classList.add('hidden');
-                        itemCompraInput.focus();
-                    });
-                    autocompleteSuggestionsDiv.appendChild(div);
+
+            const luckyFile = candidates[Math.floor(Math.random() * candidates.length)];
+            currentLuckyFileItem = {
+                name: luckyFile.name,
+                fileRef: luckyFile.fileRef,
+                relativePath: luckyFile.relativePath,
+                isCoverFile: true, 
+                isOriginal: false, 
+                prefix: luckyFile.prefix,
+                blobUrl: null, type: null, loadSuccess: null, abortController: null
+            };
+            
+            const blobLoaded = await loadBlobForItem(currentLuckyFileItem, s);
+            if (s?.aborted) throw new DOMException("Lucky feature cancelled during blob load", "AbortError");
+
+            if (blobLoaded && currentLuckyFileItem.blobUrl) {
+                luckyImageBlobUrl = currentLuckyFileItem.blobUrl;
+                if(luckyImageEl) {
+                    luckyImageEl.src = luckyImageBlobUrl;
+                    luckyImageEl.alt = `Capa da sorte: ${currentLuckyFileItem.prefix}`;
+                }
+                if(luckyImageWrapperEl) {
+                    luckyImageWrapperEl.style.display = 'block';
+                }
+                if(luckyImageTextEl) luckyImageTextEl.style.display = 'none';
+                if(luckyFeatureContainerEl) luckyFeatureContainerEl.style.display = 'block';
+                
+                if (speedDialContainerEl && luckyImageBlobUrl) {
+                    speedDialContainerEl.style.setProperty('--speed-dial-background-image-url', `url('${luckyImageBlobUrl}')`);
+                }
+                luckyFeatureState = 'image_ready';
+            } else {
+                console.warn("Failed to load blob for lucky image, or operation aborted.");
+                resetLuckyFeature(); 
+            }
+        } catch (e) {
+            if (e.name !== 'AbortError') {
+                console.error("Error in activateLuckyFeature:", e);
+                setSpeedDialStatus(`Erro ao mostrar imagem da sorte: ${e.message || 'Erro desconhecido'}`, true);
+            }
+            resetLuckyFeature();
+        }
+    }
+
+    async function handleLuckyImageClick() {
+        if (isLoading || !currentLuckyFileItem || !luckyImageWrapperEl) return;
+
+        if (luckyFeatureState === 'image_ready') {
+            if (luckyImageTextEl) {
+                luckyImageTextEl.textContent = `Explore mais de "${currentLuckyFileItem.prefix}"`;
+                luckyImageTextEl.style.display = 'block';
+            }
+            luckyFeatureState = 'explore_ready';
+        } else if (luckyFeatureState === 'explore_ready' && currentLuckyFileItem.prefix) {
+            if(speedDialContainerEl) speedDialContainerEl.style.display = 'none';
+            document.body.classList.remove('initial-load');
+            hideCaminhoSidebar(); 
+            await displayGlobalMediaByPrefix(currentLuckyFileItem.prefix);
+        }
+    }
+
+    function showCaminhoSidebar(caminhoName, items) {
+        if (!caminhoSidebarEl || !caminhoSidebarListEl || !caminhoSidebarTitleEl) return;
+        
+        const speedDialEntry = speedDialConfig.find(cfg => cfg.originalName === caminhoName);
+        const displayName = speedDialEntry ? speedDialEntry.displayName : caminhoName;
+
+        caminhoSidebarTitleEl.textContent = `Navegar em "${displayName}"`;
+        caminhoSidebarListEl.innerHTML = ''; 
+
+        if (items.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = 'Nenhum nome único encontrado.';
+            li.style.cursor = 'default';
+            caminhoSidebarListEl.appendChild(li);
+        } else {
+            items.forEach(itemPrefix => {
+                const li = document.createElement('li');
+                li.textContent = itemPrefix;
+                li.title = `Pesquisar por "${itemPrefix}"`;
+                li.addEventListener('click', () => {
+                    if (!isLoading) {
+                        displayGlobalMediaByPrefix(itemPrefix);
+                    }
                 });
-                autocompleteSuggestionsDiv.classList.remove('hidden');
-            } else {
-                autocompleteSuggestionsDiv.classList.add('hidden');
-            }
-        });
+                caminhoSidebarListEl.appendChild(li);
+            });
+        }
+        caminhoSidebarEl.classList.add('visible');
+        document.body.classList.add('sidebar-active');
+    }
 
-        document.addEventListener('click', function(event) {
-            if (!formCompra.contains(event.target)) { 
-                autocompleteSuggestionsDiv.classList.add('hidden');
-                autocompleteSuggestionsDiv.innerHTML = '';
-            }
-        });
+    function hideCaminhoSidebar() {
+        if (caminhoSidebarEl) {
+            caminhoSidebarEl.classList.remove('visible');
+        }
+        document.body.classList.remove('sidebar-active');
+    }
 
-        gunContas.map().on((contaData, contaId) => {
-            if (contaData) {
-                localContas[contaId] = { ...contaData, id: contaId };
-            } else {
-                delete localContas[contaId]; 
-            }
-            renderizarContas();
-            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
-        });
 
-        gunItensCompra.map().on((itemData, itemId) => {
-            if (itemData) {
-                localItensCompra[itemId] = { ...itemData, id: itemId };
-            } else {
-                delete localItensCompra[itemId];
-            }
-            renderizarItensCompra();
-            if (!dashboardSection.classList.contains('hidden')) renderizarDashboard();
-        });
+    async function processAndDisplayFilesForPath(f,t){if(!f){setSpeedDialStatus("Erro interno: Lista de arquivos não disponível.",!0);return}const s=beginOperation();resetLuckyFeature();try{
+        updateMainHeader('Random Media'); // Reset header
+        if(speedDialContainerEl)speedDialContainerEl.style.display='none';document.body.classList.remove('initial-load');cleanupUIState();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();initialViewHistory=[];sessionViewedPrefixes.clear();if(loadingIndicatorEl){loadingIndicatorEl.textContent=`Processando "${t}"...`;loadingIndicatorEl.style.display='block'}const pP=rootDirName?`${rootDirName}/${t}/`:`${t}/`,cP=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}/`:`${CAPAS_FOLDER_NAME}/`;let c=0;for(const i of f){if(s.aborted)throw new DOMException('Scan Cancelled during file iteration','AbortError');if(c++%100===0&&loadingIndicatorEl&&isLoading){loadingIndicatorEl.textContent=`Processando arquivos para "${t}"... (${c}/${f.length})`;await delay(1,s)}const r=i.webkitRelativePath?.replace(/^\.\//,'');if(!r||!isMediaFile(i.name))continue;const h=r.split('/');if(h.length<2)continue;const n=h[h.length-1],k=h.slice(0,-1),d=k.join('/')+'/',I=d===cP||r.startsWith(cP);let R=d.startsWith(pP)||r.startsWith(pP),O=!1;if(R){O=k.some(g=>g.toLowerCase()===ORIGINAIS_FOLDER_NAME)}if(I||R){const P=getFirstTwoWords(n);mediaFiles.push({name:n,fileRef:i,relativePath:r,isCoverFile:I,isOriginal:O,prefix:P,blobUrl:null,type:null,loadSuccess:null,abortController:null})}}if(s.aborted)throw new DOMException('Processing Operation Cancelled after file iteration','AbortError');if(mediaFiles.length>0){if(loadingIndicatorEl)loadingIndicatorEl.textContent=`Indexando ${mediaFiles.length} itens...`;buildMediaIndex(s);if(s.aborted)throw new DOMException('Indexing Cancelled','AbortError');const N=mediaFiles.filter(i=>!i.isCoverFile);if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(N.length>0){if(controlsContainerEl)controlsContainerEl.style.display='flex';await displayMedia(getRandomInitialMedia(N,MAX_INITIAL_ITEMS),s,!0);
+            const uniquePrefixesInPath = Array.from(new Set(N.map(file => file.prefix).filter(Boolean))).sort((a,b) => a.localeCompare(b));
+            showCaminhoSidebar(t, uniquePrefixesInPath);
+        }else{if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`"${t}" não contém arquivos de mídia regulares. Selecione outro.`,!1);hideCaminhoSidebar();endOperation(!0);return}}else{if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Nenhum arquivo de mídia relevante encontrado para "${t}". Selecione outro.`,!0);hideCaminhoSidebar();endOperation(!0);return}endOperation(!0)}catch(e){if(e.name!=='AbortError'){console.error(`Error processing path "${t}":`,e)}cleanupUIState();if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';const m=e.name==='AbortError'?`Operação cancelada ao processar "${t}".`:`Erro ao processar "${t}": ${e.message||'Erro desconhecido'}.`;activateLuckyFeature();setSpeedDialStatus(m,e.name!=='AbortError');resetSpeedDialIcons();resetFavicon();hideCaminhoSidebar();endOperation(!1)}}
+    function handleSearchInput(){if(!searchInputEl||!searchSuggestionsEl||!mediaIndex)return;const t=searchInputEl.value.trim().toLowerCase();searchSuggestionsEl.innerHTML='';if(t.length===0){searchSuggestionsEl.style.display='none';return}const n=new Map();for(const e of mediaIndex.keys()){if(e.startsWith(t)&&!/^icon(\s*\d*)?$/i.test(e)){const i=mediaIndex.get(e);if(i&&i.covers&&i.covers.length>0){const o=i.covers[0];if(o&&o.prefix){if(!n.has(o.prefix)){n.set(o.prefix,o);if(n.size>=MAX_SEARCH_SUGGESTIONS)break}}}}}if(n.size>0){const s=Array.from(n.keys()).sort((a,b)=>a.localeCompare(b)),c=document.createDocumentFragment();for(const e of s){const i=n.get(e),o=document.createElement('div');o.className='suggestion-item';o.title=`Mostrar mídia para "${e}"`;o.setAttribute('role','option');o.tabIndex=-1;const l=document.createElement('img');l.className='suggestion-thumbnail';l.alt=`Capa para ${e}`;o.appendChild(l);(async()=>{try{if(i){if(!i.blobUrl||i.loadSuccess!==!0){await loadBlobForItem(i,null)}if(i.blobUrl&&i.loadSuccess===!0){l.src=i.blobUrl;l.onload=()=>l.classList.add('loaded');l.onerror=()=>{l.style.display='none';console.warn(`Error rendering suggestion thumbnail for ${e}`)}}else{l.style.display='none'}}else{l.style.display='none'}}catch(a){console.warn(`Error in async load for suggestion thumbnail ${e}:`,a);l.style.display='none'}})();const r=document.createElement('span');r.className='suggestion-text';r.textContent=e;o.appendChild(r);o.addEventListener('mousedown',a=>{a.preventDefault();handleSuggestionClick(e)});o.addEventListener('keydown',a=>{if(a.key==='Enter')handleSuggestionClick(e)});c.appendChild(o)}searchSuggestionsEl.appendChild(c);searchSuggestionsEl.style.display='block'}else{searchSuggestionsEl.style.display='none'}}
+    function handleSuggestionClick(p){if(!searchInputEl||!searchSuggestionsEl||isLoading)return;searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none';resetLuckyFeature(); if(speedDialContainerEl) speedDialContainerEl.style.display = 'none'; document.body.classList.remove('initial-load'); 
+    hideCaminhoSidebar(); 
+    displayGlobalMediaByPrefix(p)}
+    function hideSuggestionsOnClickOutside(e){if(!searchInputEl||!searchSuggestionsEl)return;if(!e.target.closest('.search-container')&&!e.target.closest('#search-suggestions')){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}}
+    function loadSpeedDialConfig(){try{const s=localStorage.getItem(SPEED_DIAL_CONFIG_KEY);if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.every(i=>i&&typeof i.originalName==='string'&&typeof i.displayName==='string')){const c=new Set(p.map(i=>i.originalName)),d=new Set(CAMINHO_FOLDER_NAMES);if(c.size===d.size&&[...c].every(n=>d.has(n))){speedDialConfig=p;return}else{console.warn("Speed dial config mismatch with defaults. Resetting.");throw new Error("Config mismatch")}}else{console.warn("Invalid speed dial config found in localStorage. Resetting.")}}}catch(e){console.error("Failed to load or parse speed dial config. Resetting to default.",e)}speedDialConfig=CAMINHO_FOLDER_NAMES.map(n=>({originalName:n,displayName:n}));saveSpeedDialConfig()}
+    function saveSpeedDialConfig(){try{localStorage.setItem(SPEED_DIAL_CONFIG_KEY,JSON.stringify(speedDialConfig))}catch(e){console.error("Failed to save speed dial config to localStorage:",e);setSpeedDialStatus("Não foi possível salvar a ordem/nomes dos itens.",!0)}}
+    async function handleCaminhoSelection(e){const t=e.target.closest('.speed-dial-item');if(isLoading||!allSelectedFiles||!t){if(!allSelectedFiles&&!isLoading)setSpeedDialStatus("Selecione a pasta 'Nucleo' primeiro.",!0);return}const o=t.dataset.caminho;if(!o){console.error("Clicked speed dial item missing 'data-caminho' attribute.",t);setSpeedDialStatus("Erro ao identificar o caminho selecionado.",!0);return}resetLuckyFeature(); await processAndDisplayFilesForPath(allSelectedFiles,o)}
+    function renderSpeedDialItems(){if(!speedDialOptionsEl)return;speedDialOptionsEl.innerHTML='';const f=document.createDocumentFragment();speedDialConfig.forEach(c=>{const i=document.createElement('div');i.className='speed-dial-item';i.dataset.caminho=c.originalName;i.setAttribute('role','button');i.setAttribute('tabindex','0');i.draggable=!0;const o=document.createElement('div');o.className='icon-container';const m=document.createElement('img');m.className='speed-dial-icon';m.alt=`Ícone para ${c.displayName}`;m.src="";m.loading='lazy';const u=iconBlobUrls.get(c.originalName);if(u){m.src=u;m.classList.add('loaded')}else{i.classList.remove('icon-error')}o.appendChild(m);i.appendChild(o);const textEl=document.createElement('span');textEl.className='text';textEl.textContent=c.displayName;i.appendChild(textEl);const e=document.createElement('button');e.className='edit-btn';e.innerHTML='✎';e.title=`Renomear ${c.displayName}`;e.setAttribute('aria-label',`Renomear ${c.displayName}`);e.onclick=b=>{b.stopPropagation();b.preventDefault();handleRenameItem(c.originalName)};i.appendChild(e);i.addEventListener('click',handleCaminhoSelection);i.addEventListener('keydown',b=>{if(b.key==='Enter'||b.key===' '){b.preventDefault();handleCaminhoSelection(b)}});i.addEventListener('dragstart',handleDragStart);i.addEventListener('dragover',handleDragOver);i.addEventListener('dragleave',handleDragLeave);i.addEventListener('drop',handleDrop);i.addEventListener('dragend',handleDragEnd);f.appendChild(i)});speedDialOptionsEl.appendChild(f)}
+    function handleRenameItem(o){const i=speedDialConfig.findIndex(t=>t.originalName===o);if(i===-1)return;const c=speedDialConfig[i].displayName,n=prompt(`Digite o novo nome para "${c}" (original: ${o}):`,c);if(n&&n.trim()!==''&&n.trim()!==c){speedDialConfig[i].displayName=n.trim();saveSpeedDialConfig();renderSpeedDialItems();setSpeedDialStatus(`"${c}" renomeado para "${n}".`,!1)}else if(n===null){setSpeedDialStatus("Renomeação cancelada.",!1)}else{setSpeedDialStatus("Nome inválido ou inalterado.",!0)}}
+    function handleDragStart(e){const i=e.target.closest('.speed-dial-item');if(!i)return;draggedItemOriginalName=i.dataset.caminho;e.dataTransfer.setData('text/plain',draggedItemOriginalName);e.dataTransfer.effectAllowed='move';setTimeout(()=>i.classList.add('dragging'),0)}
+    function handleDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';const t=e.target.closest('.speed-dial-item');if(t&&t.dataset.caminho!==draggedItemOriginalName){t.classList.add('drag-over')}}
+    function handleDragLeave(e){const t=e.target.closest('.speed-dial-item');if(t){t.classList.remove('drag-over')}}
+    function handleDrop(e){e.preventDefault();const t=e.target.closest('.speed-dial-item');if(!t||t.dataset.caminho===draggedItemOriginalName||!draggedItemOriginalName){if(t)t.classList.remove('drag-over');return}const o=t.dataset.caminho;t.classList.remove('drag-over');const d=speedDialConfig.findIndex(i=>i.originalName===draggedItemOriginalName),g=speedDialConfig.findIndex(i=>i.originalName===o);if(d!==-1&&g!==-1){const[r]=speedDialConfig.splice(d,1);speedDialConfig.splice(g,0,r);saveSpeedDialConfig();renderSpeedDialItems();setSpeedDialStatus("Ordem atualizada.",!1)}draggedItemOriginalName=null}
+    function handleDragEnd(e){const i=e.target.closest('.speed-dial-item');if(i){i.classList.remove('dragging')}document.querySelectorAll('.speed-dial-item.drag-over').forEach(el=>el.classList.remove('drag-over'));draggedItemOriginalName=null}
+    async function handleFolderSelection(e){if(isLoading)return;const f=e.target.files,i=e.target;if(!f||f.length===0){setSpeedDialStatus("Nenhuma pasta selecionada ou seleção cancelada.",!1);allSelectedFiles=null;rootDirName='';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='inline-block';if(speedDialOptionsEl)speedDialOptionsEl.style.display='none';resetSpeedDialIcons();resetFavicon();resetLuckyFeature();document.body.classList.add('initial-load');if(controlsContainerEl) controlsContainerEl.style.display = 'none';i.value=null;hideCaminhoSidebar(); updateMainHeader('Random Media'); return}let r="Seleção",p=!0;if(f[0]?.webkitRelativePath){const F=f[0].webkitRelativePath.replace(/^\.\//,''),s=F.split('/')[0];if(s){r=s;for(let t=1;t<f.length;t++){const l=f[t].webkitRelativePath?.replace(/^\.\//,'');if(!l||!l.startsWith(r+'/')){p=!1;r="Seleção";console.warn("Inconsistent paths detected. Not a single root folder selection.");break}}}}else{p=!1}allSelectedFiles=f;rootDirName=r;initialViewHistory=[];sessionViewedPrefixes.clear();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();cleanupUIState();resetSpeedDialIcons();resetFavicon();resetLuckyFeature(); updateMainHeader('Random Media'); if(controlsContainerEl)controlsContainerEl.style.display='none';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='none';if(document.getElementById('speed-dial-subtitle'))document.getElementById('speed-dial-subtitle').style.display='none';if(speedDialOptionsEl)speedDialOptionsEl.style.display='grid';setSpeedDialStatus(`Pasta "${rootDirName}" carregada (${f.length} arquivos). Carregando recursos...`);document.body.classList.add('initial-load');if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t=>{t.style.pointerEvents='auto';t.removeAttribute('aria-disabled')})}i.value=null;renderSpeedDialItems();await loadSpecificIcons(allSelectedFiles);await loadSpecificFavicon(allSelectedFiles);activateLuckyFeature();hideCaminhoSidebar();}
+    async function handleReturnToSpeedDialClick(){if(isLoading)return;const s=beginOperation();try{
+        updateMainHeader('Random Media'); // Reset header
+        cleanupUIState();if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');setSpeedDialStatus("Selecione um Caminho ou carregue uma nova pasta 'Nucleo'.",!1);mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();initialViewHistory=[];sessionViewedPrefixes.clear();hideCaminhoSidebar();endOperation(!0);activateLuckyFeature();}catch(e){if(e.name!=='AbortError'){console.error("Error returning to speed dial:",e);setSpeedDialStatus("Erro ao retornar ao início. Verifique o console.",!0)}endOperation(!1); return;}
+    }
+    function handleGlobalKeyDown(e){if(e.key==='Escape'){if(fullscreenMediaEl&&fullscreenMediaEl.style.display==='flex'){closeFullscreenMedia()} else if (caminhoSidebarEl && caminhoSidebarEl.classList.contains('visible')) {hideCaminhoSidebar();}}}
+    document.addEventListener('DOMContentLoaded',()=>{coverOverlayBlur=document.getElementById('cover-overlay-blur');coverOverlay=document.getElementById('cover-overlay');mediaContainerEl=document.getElementById('media-container');loadingIndicatorEl=document.getElementById('loading-indicator');newMediaButton=document.getElementById('new-media');themeToggleButton=document.getElementById('theme-toggle-button');speedDialContainerEl=document.getElementById('speed-dial-container');selectNucleoButtonEl=document.getElementById('select-nucleo-folder');speedDialOptionsEl=document.getElementById('speed-dial-options');speedDialStatusEl=document.getElementById('speed-dial-status');faviconElement=document.getElementById('favicon');folderInputEl=document.getElementById('folder-input');fullscreenMediaEl=document.getElementById('fullscreen-media');fullscreenImgEl=document.getElementById('fullscreen-img');fullscreenVideoEl=document.getElementById('fullscreen-video');rotateButtonEl=document.getElementById('rotate-button');searchInputEl=document.getElementById('search-input');searchSuggestionsEl=document.getElementById('search-suggestions');returnToSpeedDialButton=document.getElementById('return-to-speed-dial');luckyFeatureContainerEl=document.getElementById('lucky-feature-container');luckyImageWrapperEl=document.getElementById('lucky-image-wrapper');luckyImageEl=document.getElementById('lucky-image');luckyImageTextEl=document.getElementById('lucky-image-text');controlsContainerEl = document.querySelector('.controls-container');
+    mainHeaderTitleEl = document.getElementById('main-header-title'); // Initialize mainHeaderTitleEl
+    caminhoSidebarEl = document.getElementById('caminho-sidebar');
+    caminhoSidebarListEl = document.getElementById('caminho-sidebar-list');
+    caminhoSidebarTitleEl = document.getElementById('caminho-sidebar-title');
+    caminhoSidebarCloseBtnEl = document.getElementById('caminho-sidebar-close-btn');
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            dataVencimentoInput.value = today; 
-            showTab('contas'); 
-            renderizarContas();
-            renderizarItensCompra();
-            renderizarDashboard(); 
-        });
-    </script>
+    const c={coverOverlayBlur,coverOverlay,mediaContainerEl,loadingIndicatorEl,newMediaButton,themeToggleButton,speedDialContainerEl,selectNucleoButtonEl,speedDialOptionsEl,speedDialStatusEl,faviconElement,folderInputEl,fullscreenMediaEl,fullscreenImgEl,fullscreenVideoEl,rotateButtonEl,searchInputEl,searchSuggestionsEl,returnToSpeedDialButton,luckyFeatureContainerEl,luckyImageWrapperEl,luckyImageEl,luckyImageTextEl,controlsContainerEl,caminhoSidebarEl,caminhoSidebarListEl,caminhoSidebarTitleEl,caminhoSidebarCloseBtnEl, mainHeaderTitleEl};const m=Object.entries(c).filter(([_,el])=>!el);if(m.length>0){const e=`Application Error! Required elements not found: ${m.map(([n,_])=>n).join(', ')}`;console.error(e);try{document.body.innerHTML=`<h1 style='color:red; text-align:center;'>Application Error!</h1><p style='text-align:center;'>Required elements not found: ${m.map(([n,_])=>n).join(', ')}</p>`}catch(E){}return}
+    updateMainHeader('Random Media'); // Set initial header
+    if(controlsContainerEl)controlsContainerEl.style.display='none';loadSpeedDialConfig();renderSpeedDialItems();resetLuckyFeature();function u(){themeToggleButton.textContent=document.body.classList.contains('light-theme')?'Modo Escuro':'Modo Claro'}u();themeToggleButton.addEventListener('click',()=>{document.body.classList.toggle('light-theme');const t=document.body.classList.contains('light-theme')?'light':'dark';try{localStorage.setItem(THEME_KEY,t)}catch(n){console.error("Failed to save theme preference:",n)}u()});selectNucleoButtonEl.addEventListener('click',()=>{if(isLoading)return;if(folderInputEl){folderInputEl.click();setSpeedDialStatus("Aguardando seleção da pasta 'Nucleo'...");initialViewHistory=[];sessionViewedPrefixes.clear();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();allSelectedFiles=null;rootDirName='';cleanupUIState();resetSpeedDialIcons();resetFavicon();resetLuckyFeature(); updateMainHeader('Random Media'); document.body.classList.add('initial-load');if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(document.getElementById('speed-dial-subtitle'))document.getElementById('speed-dial-subtitle').style.display='block';if(speedDialOptionsEl)speedDialOptionsEl.style.display='none';renderSpeedDialItems()}});folderInputEl.addEventListener('change',handleFolderSelection);if(returnToSpeedDialButton)returnToSpeedDialButton.addEventListener('click',handleReturnToSpeedDialClick);if(luckyImageWrapperEl)luckyImageWrapperEl.addEventListener('click',handleLuckyImageClick);
+    if(caminhoSidebarCloseBtnEl) caminhoSidebarCloseBtnEl.addEventListener('click', hideCaminhoSidebar);
+    newMediaButton.addEventListener('click',async()=>{if(isLoading||!allSelectedFiles||mediaFiles.length===0)return;const s=beginOperation();try{
+    updateMainHeader('Random Media'); // Reset header
+    resetLuckyFeature();if(speedDialContainerEl) speedDialContainerEl.style.display = 'none'; document.body.classList.remove('initial-load'); cleanupUIState();const n=mediaFiles.filter(i=>!i.isCoverFile);if(n.length>0){if(mediaContainerEl)mediaContainerEl.style.display='block';if(controlsContainerEl)controlsContainerEl.style.display='flex';await displayMedia(getRandomInitialMedia(n,MAX_INITIAL_ITEMS),s,!0);
+    const currentPathName = speedDialConfig.find(cfg => {
+        if (mediaFiles.length > 0 && mediaFiles[0].relativePath) {
+            const parts = mediaFiles[0].relativePath.split('/');
+            const basePath = rootDirName ? `${rootDirName}/` : '';
+            if (parts.length > (rootDirName ? 1:0) && mediaFiles[0].relativePath.startsWith(basePath)) {
+                 const caminhoPart = parts[rootDirName ? 1 : 0];
+                 return cfg.originalName === caminhoPart;
+            }
+        }
+        return false;
+    })?.originalName;
+
+    if (currentPathName) {
+        const uniquePrefixesInPath = Array.from(new Set(n.map(file => file.prefix).filter(Boolean))).sort((a,b) => a.localeCompare(b));
+        showCaminhoSidebar(currentPathName, uniquePrefixesInPath);
+    } else {
+        hideCaminhoSidebar(); 
+    }
+    
+    }else{const e="text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Nada a exibir (sem mídia regular neste Caminho).</p>`;mediaContainerEl.style.display='block'} if(controlsContainerEl)controlsContainerEl.style.display='flex'; hideCaminhoSidebar();}endOperation(!0)}catch(r){if(r.name!=='AbortError'){console.error("Error displaying new random media:",r);const e="color:var(--error-text); text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Erro ao exibir nova mídia: ${r.message||'Erro desconhecido'}</p>`;mediaContainerEl.style.display='block'}endOperation(!1)}else{console.log("Display new media cancelled.");endOperation(!1)}}});searchInputEl.addEventListener('input',handleSearchInput);searchInputEl.addEventListener('blur',e=>{setTimeout(()=>{if(!searchSuggestionsEl||!document.activeElement||!document.activeElement.closest('#search-suggestions')){if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}}},150)});document.addEventListener('click',hideSuggestionsOnClickOutside);searchInputEl.setAttribute('autocomplete','off');searchInputEl.disabled=!0;searchInputEl.addEventListener('keydown',e=>{if(!searchSuggestionsEl||searchSuggestionsEl.style.display==='none'||searchSuggestionsEl.children.length===0)return;const s=Array.from(searchSuggestionsEl.children);let a=s.findIndex(i=>i.classList.contains('active'));if(e.key==='ArrowDown'){e.preventDefault();s[a]?.classList.remove('active');a=(a+1)%s.length;s[a].classList.add('active');s[a].scrollIntoView({block:'nearest'})}else if(e.key==='ArrowUp'){e.preventDefault();s[a]?.classList.remove('active');a=(a-1+s.length)%s.length;s[a].classList.add('active');s[a].scrollIntoView({block:'nearest'})}else if(e.key==='Enter'){if(a>-1){e.preventDefault();s[a].dispatchEvent(new MouseEvent('mousedown'))}}else if(e.key==='Escape'){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}});document.addEventListener('keydown',handleGlobalKeyDown);setSpeedDialStatus("Por favor, selecione a pasta 'Nucleo'.")});
+</script>
 </body>
 </html>
 
