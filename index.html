@@ -57,10 +57,9 @@
 
 <script>
     'use strict';
-    let mediaFiles=[],mediaIndex=new Map(),globalMediaIndex=new Map(),initialViewHistory=[],sessionViewedPrefixes=new Set(),rotationAngle=0,zoomScale=1,imgOffsetX=0,imgOffsetY=0,isDragging=!1,dragStartX=0,dragStartY=0,dragStartOffsetX=0,dragStartOffsetY=0,isLoading=!1,currentOperationController=null,allSelectedFiles=null,rootDirName='',iconBlobUrls=new Map(),faviconBlobUrl=null,speedDialConfig=[];
+    let mediaFiles=[],mediaIndex=new Map(),initialViewHistory=[],sessionViewedPrefixes=new Set(),rotationAngle=0,zoomScale=1,imgOffsetX=0,imgOffsetY=0,isDragging=!1,dragStartX=0,dragStartY=0,dragStartOffsetX=0,dragStartOffsetY=0,isLoading=!1,currentOperationController=null,allSelectedFiles=null,rootDirName='',iconBlobUrls=new Map(),faviconBlobUrl=null,speedDialConfig=[];
     let coverOverlayBlur,coverOverlay,mediaContainerEl,loadingIndicatorEl,newMediaButton,themeToggleButton,speedDialContainerEl,selectNucleoButtonEl,speedDialOptionsEl,speedDialStatusEl,faviconElement,folderInputEl,fullscreenMediaEl,fullscreenImgEl,fullscreenVideoEl,rotateButtonEl,searchInputEl,searchSuggestionsEl,draggedItemOriginalName=null,returnToSpeedDialButton, controlsContainerEl;
     let luckyFeatureContainerEl, luckyImageWrapperEl, luckyImageEl, luckyImageTextEl;
-    let suggestionAbortController = null;
     let currentLuckyFileItem=null, luckyImageBlobUrl=null, luckyFeatureState='initial';
     let mainHeaderTitleEl; // Variável para o H1 principal
 
@@ -131,185 +130,17 @@
 
         if(s.aborted)throw new DOMException('Cancelled during cover load','AbortError');if(c){if(coverOverlayBlur){coverOverlayBlur.style.backgroundImage=`url('${c}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlayBlur.classList.add('visible')})}if(coverOverlay){coverOverlay.style.backgroundImage=`url('${c}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlay.classList.add('visible')})}if(document.body&&!s.aborted)document.body.classList.add('cover-active');window.coverDisplayTimeoutId=setTimeout(async()=>{if(s.aborted)return;try{await displayMedia(r,s,!1);endOperation(!0)}catch(d){if(d.name!=='AbortError'){console.error("Error during post-cover media display:",d);setSpeedDialStatus(`Erro ao exibir mídia para "${p}" após a capa.`,!0)}endOperation(!1)}},COVER_DISPLAY_DELAY)}else{await displayMedia(r,s,!1);endOperation(!0)}}catch(e){if(e.name!=='AbortError'){console.error(`Error filtering for prefix "${p}":`,e);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Erro ao filtrar por "${p}". Verifique o console.`,!0);endOperation(!1)}else{console.log(`Filtering for "${p}" was cancelled.`);if(!isLoading){cleanupUIState();if(speedDialContainerEl)speedDialContainerEl.style.display='flex';if(controlsContainerEl)controlsContainerEl.style.display='none';if(document.body)document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Filtragem por "${p}" cancelada.`,!1);endOperation(!1)}}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(document.body&&!document.body.classList.contains('cover-active')){document.body.classList.remove('cover-active')}}}
     
-    // Current signature: async function displayGlobalMediaByPrefix(t)
-    // 't' is the prefixToSearch.
-    async function displayGlobalMediaByPrefix(prefixToSearch) {
-        if (!prefixToSearch || isLoading || !globalMediaIndex || globalMediaIndex.size === 0) { // Added check for globalMediaIndex
-            if (!globalMediaIndex || globalMediaIndex.size === 0) {
-                console.warn("displayGlobalMediaByPrefix called without a populated globalMediaIndex.");
-                // Optionally set a status message for the user
-            }
-            return;
+    async function displayGlobalMediaByPrefix(t){if(!t||isLoading||!allSelectedFiles)return;if(searchInputEl&&searchInputEl.value)searchInputEl.value='';if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}const s=beginOperation();let g=null;let coverItemName = null; try{
+        updateMainHeader('Random Media'); // Reset header
+        resetLuckyFeature(); if(speedDialContainerEl) speedDialContainerEl.style.display = 'none';
+        clearTimeout(window.coverDisplayTimeoutId||0);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(loadingIndicatorEl){loadingIndicatorEl.textContent=`Pesquisando por "${t}" em todos os Caminhos...`;loadingIndicatorEl.style.display='block'}if(s.aborted)throw new DOMException('Cancelled early (global search)','AbortError');const o=[],r=[];const a=t.toLowerCase();const b=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}/`:`${CAPAS_FOLDER_NAME}/`;for(const f of allSelectedFiles){if(s.aborted)throw new DOMException('Scan Cancelled during file iteration (global search)','AbortError');const l=f.webkitRelativePath?.replace(/^\.\//,'');if(!l||!isMediaFile(f.name))continue;const p=l.split('/');if(p.length<(rootDirName?2:1))continue;const n=p[p.length-1],h=getFirstTwoWords(n);if(h.toLowerCase()!==a)continue;const k=p.slice(0,-1),S=k.join('/')+(k.length>0?'/':'');let C=!1,R=!1,O=!1;if(S===b){C=!0}else{for(const x of CAMINHO_FOLDER_NAMES){const N=rootDirName?`${rootDirName}/${x}/`:`${x}/`;if(S.startsWith(N)){R=!0;O=k.some(e=>e.toLowerCase()===ORIGINAIS_FOLDER_NAME);break}}}if(C||R){const M={name:n,fileRef:f,relativePath:l,isCoverFile:C,isOriginal:O,prefix:h,blobUrl:null,type:null,loadSuccess:null,abortController:null};if(C){o.push(M)}else if(R){r.push(M)}}}if(r.length===0&&o.length===0){console.warn(`Prefix "${t}" not found anywhere.`);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Prefixo "${t}" não encontrado em nenhum Caminho. Tente outro.`,!1);endOperation(!0);return}let F=r;if(F.length>MAX_FILTERED_ITEMS){F=getRandomMedia(F,MAX_FILTERED_ITEMS)}if(F.length===0){console.warn(`No regular media found globally for prefix "${t}", only covers or empty regulars list.`);if(coverOverlayBlur){coverOverlayBlur.classList.remove('visible');coverOverlayBlur.style.backgroundImage='none'}if(coverOverlay){coverOverlay.classList.remove('visible');coverOverlay.style.backgroundImage='none'}if(document.body)document.body.classList.remove('cover-active');if(mediaContainerEl){mediaContainerEl.innerHTML='';mediaContainerEl.style.display='none'}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Nenhum item regular encontrado para "${t}" em todos os Caminhos. Selecione outro.`,!1);endOperation(!0);return}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(mediaContainerEl)mediaContainerEl.style.display='block';if(controlsContainerEl)controlsContainerEl.style.display='flex';document.body.classList.remove('initial-load');if(o.length>0){const u=o.filter(i=>i.loadSuccess!==!1);if(u.length>0){const m=u[Math.floor(Math.random()*u.length)];g=await loadCoverImageBlobUrl(m,s); coverItemName = m.name;}}
+        
+        if (coverItemName) { // Update header if cover is shown
+            const username = getInstagramUsername(coverItemName);
+            if (username) updateMainHeader('@' + username);
         }
 
-        if (searchInputEl && searchInputEl.value) searchInputEl.value = '';
-        if (searchSuggestionsEl) {
-            searchSuggestionsEl.innerHTML = '';
-            searchSuggestionsEl.style.display = 'none';
-        }
-
-        const s = beginOperation();
-        let coverBlobUrl = null; // Renamed from 'g' for clarity
-        let coverItemName = null;
-
-        try {
-            updateMainHeader('Random Media'); // Reset header
-            resetLuckyFeature();
-            if (speedDialContainerEl) speedDialContainerEl.style.display = 'none';
-            
-            // UI cleanup for media display area
-            clearTimeout(window.coverDisplayTimeoutId || 0);
-            if (coverOverlayBlur) {
-                coverOverlayBlur.classList.remove('visible');
-                coverOverlayBlur.style.backgroundImage = 'none';
-            }
-            if (coverOverlay) {
-                coverOverlay.classList.remove('visible');
-                coverOverlay.style.backgroundImage = 'none';
-            }
-            if (document.body) document.body.classList.remove('cover-active');
-            
-            if (loadingIndicatorEl) {
-                loadingIndicatorEl.textContent = `Pesquisando por "${prefixToSearch}" em todos os Caminhos...`;
-                loadingIndicatorEl.style.display = 'block';
-            }
-
-            if (s.aborted) throw new DOMException('Cancelled early (global search)', 'AbortError');
-
-            const coverFileItems = []; // 'o' in original code
-            const regularFileItems = []; // 'r' in original code
-            const searchPrefixLower = prefixToSearch.toLowerCase();
-
-            // Iterate through globalMediaIndex to find matching files
-            for (const filesInCaminho of globalMediaIndex.values()) {
-                if (s.aborted) throw new DOMException('Scan Cancelled during globalMediaIndex iteration (global search)', 'AbortError');
-                for (const fileMeta of filesInCaminho) {
-                    if (fileMeta.prefix && fileMeta.prefix.toLowerCase() === searchPrefixLower) {
-                        // All necessary properties (name, fileRef, relativePath, isCoverFile, isOriginal, prefix)
-                        // are already in fileMeta from when globalMediaIndex was built.
-                        if (fileMeta.isCoverFile) {
-                            coverFileItems.push(fileMeta);
-                        } else {
-                            regularFileItems.push(fileMeta);
-                        }
-                    }
-                }
-            }
-            
-            // The old loop iterating 'allSelectedFiles' and constructing 'M' objects is now replaced by the loop above.
-
-            if (regularFileItems.length === 0 && coverFileItems.length === 0) {
-                console.warn(`Prefix "${prefixToSearch}" not found anywhere.`);
-                // ... (rest of the "not found" UI handling)
-                if (mediaContainerEl) mediaContainerEl.style.display = 'none';
-                if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-                if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-                if (speedDialContainerEl) speedDialContainerEl.style.display = 'flex';
-                document.body.classList.add('initial-load');
-                activateLuckyFeature();
-                setSpeedDialStatus(`Prefixo "${prefixToSearch}" não encontrado em nenhum Caminho. Tente outro.`, false);
-                endOperation(true);
-                return;
-            }
-
-            let finalRegularItemsToDisplay = regularFileItems;
-            if (finalRegularItemsToDisplay.length > MAX_FILTERED_ITEMS) {
-                finalRegularItemsToDisplay = getRandomMedia(finalRegularItemsToDisplay, MAX_FILTERED_ITEMS);
-            }
-
-            if (finalRegularItemsToDisplay.length === 0) {
-                console.warn(`No regular media found globally for prefix "${prefixToSearch}", only covers or empty regulars list.`);
-                // ... (rest of the "no regular media" UI handling)
-                if (coverOverlayBlur) { /* ... */ } // Ensure these are filled from original code as needed
-                if (coverOverlay) { /* ... */ }
-                if (document.body) document.body.classList.remove('cover-active');
-                if (mediaContainerEl) {mediaContainerEl.innerHTML = ''; mediaContainerEl.style.display = 'none';}
-                if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-                if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-                if (speedDialContainerEl) speedDialContainerEl.style.display = 'flex';
-                document.body.classList.add('initial-load');
-                activateLuckyFeature();
-                setSpeedDialStatus(`Nenhum item regular encontrado para "${prefixToSearch}" em todos os Caminhos. Selecione outro.`, false);
-                endOperation(true);
-                return;
-            }
-
-            if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-            if (mediaContainerEl) mediaContainerEl.style.display = 'block';
-            if (controlsContainerEl) controlsContainerEl.style.display = 'flex';
-            document.body.classList.remove('initial-load');
-
-            if (coverFileItems.length > 0) {
-                const validCovers = coverFileItems.filter(i => i.loadSuccess !== false); // Prefer covers not known to have failed
-                if (validCovers.length > 0) {
-                    const selectedCoverMeta = validCovers[Math.floor(Math.random() * validCovers.length)];
-                    // loadCoverImageBlobUrl expects an item with isCoverFile: true and fileRef
-                    coverBlobUrl = await loadCoverImageBlobUrl(selectedCoverMeta, s); 
-                    coverItemName = selectedCoverMeta.name;
-                }
-            }
-            
-            if (coverItemName) {
-                const username = getInstagramUsername(coverItemName);
-                if (username) updateMainHeader('@' + username);
-            }
-
-            if (s.aborted) throw new DOMException('Cancelled during global cover load', 'AbortError');
-
-            if (coverBlobUrl) {
-                // ... (rest of the cover display logic using coverBlobUrl)
-                if (coverOverlayBlur) {coverOverlayBlur.style.backgroundImage=`url('${coverBlobUrl}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlayBlur.classList.add('visible')})}
-                if (coverOverlay) {coverOverlay.style.backgroundImage=`url('${coverBlobUrl}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlay.classList.add('visible')})}
-                if (document.body && !s.aborted) document.body.classList.add('cover-active');
-                window.coverDisplayTimeoutId = setTimeout(async () => {
-                    if (s.aborted) return;
-                    try {
-                        // displayMedia expects items with fileRef, type, blobUrl (if loaded), etc.
-                        // The items in finalRegularItemsToDisplay are from globalMediaIndex and should be compatible.
-                        await displayMedia(finalRegularItemsToDisplay, s, false);
-                        endOperation(true);
-                    } catch (d) {
-                        if (d.name !== 'AbortError') {
-                            console.error("Error during post-cover global media display:",d);
-                            setSpeedDialStatus(`Erro ao exibir mídia global para "${prefixToSearch}" após a capa.`,true);
-                        }
-                        endOperation(false);
-                    }
-                }, COVER_DISPLAY_DELAY);
-            } else {
-                await displayMedia(finalRegularItemsToDisplay, s, false);
-                endOperation(true);
-            }
-        } catch (e) {
-            // ... (existing error handling logic)
-            if (e.name !== 'AbortError') {
-                console.error(`Error global filtering for prefix "${prefixToSearch}":`,e);
-                if(mediaContainerEl)mediaContainerEl.style.display='none';
-                if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';
-                if(controlsContainerEl)controlsContainerEl.style.display='none';
-                if(speedDialContainerEl)speedDialContainerEl.style.display='flex';
-                document.body.classList.add('initial-load');
-                activateLuckyFeature();
-                setSpeedDialStatus(`Erro ao filtrar globalmente por "${prefixToSearch}". Verifique o console.`,true);
-                endOperation(false);
-            } else {
-                console.log(`Global filtering for "${prefixToSearch}" was cancelled.`);
-                if(!isLoading){
-                    cleanupUIState();
-                    if(speedDialContainerEl)speedDialContainerEl.style.display='flex';
-                    if(controlsContainerEl)controlsContainerEl.style.display='none';
-                    if(document.body)document.body.classList.add('initial-load');
-                    activateLuckyFeature();
-                    setSpeedDialStatus(`Filtragem global por "${prefixToSearch}" cancelada.`,false);
-                    endOperation(false)
-                }
-            }
-            if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-            if (document.body && !document.body.classList.contains('cover-active')) {
-                 document.body.classList.remove('cover-active');
-            }
-        }
-    }
+        if(s.aborted)throw new DOMException('Cancelled during global cover load','AbortError');if(g){if(coverOverlayBlur){coverOverlayBlur.style.backgroundImage=`url('${g}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlayBlur.classList.add('visible')})}if(coverOverlay){coverOverlay.style.backgroundImage=`url('${g}')`;requestAnimationFrame(()=>{if(!s.aborted)coverOverlay.classList.add('visible')})}if(document.body&&!s.aborted)document.body.classList.add('cover-active');window.coverDisplayTimeoutId=setTimeout(async()=>{if(s.aborted)return;try{await displayMedia(F,s,!1);endOperation(!0)}catch(d){if(d.name!=='AbortError'){console.error("Error during post-cover global media display:",d);setSpeedDialStatus(`Erro ao exibir mídia global para "${t}" após a capa.`,!0)}endOperation(!1)}},COVER_DISPLAY_DELAY)}else{await displayMedia(F,s,!1);endOperation(!0)}}catch(e){if(e.name!=='AbortError'){console.error(`Error global filtering for prefix "${t}":`,e);if(mediaContainerEl)mediaContainerEl.style.display='none';if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Erro ao filtrar globalmente por "${t}". Verifique o console.`,!0);endOperation(!1)}else{console.log(`Global filtering for "${t}" was cancelled.`);if(!isLoading){cleanupUIState();if(speedDialContainerEl)speedDialContainerEl.style.display='flex';if(controlsContainerEl)controlsContainerEl.style.display='none';if(document.body)document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Filtragem global por "${t}" cancelada.`,!1);endOperation(!1)}}if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(document.body&&!document.body.classList.contains('cover-active')){document.body.classList.remove('cover-active')}}}
     function updateFullscreenTransform(){if(!fullscreenImgEl)return;fullscreenImgEl.style.transform=`translate(${imgOffsetX}px, ${imgOffsetY}px) rotate(${rotationAngle}deg) scale(${zoomScale})`}
     function showFullscreenMedia(s,t){if(!fullscreenMediaEl||!fullscreenImgEl||!fullscreenVideoEl||!rotateButtonEl)return;rotationAngle=0;zoomScale=1;imgOffsetX=0;imgOffsetY=0;isDragging=!1;fullscreenVideoEl.pause();fullscreenVideoEl.removeAttribute('src');if(fullscreenVideoEl.readyState>0){try{fullscreenVideoEl.load()}catch(e){}}fullscreenImgEl.removeAttribute('src');fullscreenImgEl.style.display='none';fullscreenVideoEl.style.display='none';fullscreenImgEl.removeEventListener('wheel',handleWheelZoom);fullscreenImgEl.removeEventListener('mousedown',handleMouseDownDrag);document.removeEventListener('mousemove',handleMouseMoveDrag);document.removeEventListener('mouseup',handleMouseUpDrag);fullscreenImgEl.onload=null;fullscreenImgEl.onerror=null;if(t?.startsWith('image')){fullscreenImgEl.style.display='block';rotateButtonEl.style.display='block';updateFullscreenTransform();fullscreenImgEl.onload=()=>{const c=fullscreenMediaEl.clientWidth*.9,h=fullscreenMediaEl.clientHeight*.9,i=fullscreenImgEl.naturalWidth/fullscreenImgEl.naturalHeight,r=c/h;let l;if(i>r){l=c/fullscreenImgEl.naturalWidth}else{l=h/fullscreenImgEl.naturalHeight}zoomScale=Math.min(l,1);fullscreenImgEl.style.width=`${fullscreenImgEl.naturalWidth*zoomScale}px`;fullscreenImgEl.style.height=`${fullscreenImgEl.naturalHeight*zoomScale}px`;imgOffsetX=0;imgOffsetY=0;updateFullscreenTransform();fullscreenImgEl.style.width='auto';fullscreenImgEl.style.height='auto';fullscreenImgEl.onload=null};fullscreenImgEl.onerror=()=>{console.error("Falha ao carregar imagem em tela cheia:",s);closeFullscreenMedia();fullscreenImgEl.onload=null;fullscreenImgEl.onerror=null};fullscreenImgEl.src=s;fullscreenImgEl.addEventListener('wheel',handleWheelZoom,{passive:!1});fullscreenImgEl.addEventListener('mousedown',handleMouseDownDrag)}else if(t?.startsWith('video')){fullscreenVideoEl.src=s;fullscreenVideoEl.style.display='block';rotateButtonEl.style.display='none';fullscreenVideoEl.play().catch(e=>console.warn("Autoplay bloqueado:",e))}else{console.warn("Tipo de mídia não suportado para fullscreen:",t);return}fullscreenMediaEl.style.display='flex'}
     function handleWheelZoom(e){e.preventDefault();e.stopPropagation();if(!fullscreenImgEl||fullscreenImgEl.style.display==='none')return;const r=fullscreenImgEl.getBoundingClientRect();if(r.width===0||r.height===0)return;const d=e.deltaY,s=d<0?ZOOM_SENSITIVITY:1/ZOOM_SENSITIVITY,o=zoomScale;let n=o*s;n=Math.max(MIN_ZOOM,Math.min(n,MAX_ZOOM));if(n===o)return;const m=e.clientX,y=e.clientY,cX=r.left+r.width/2,cY=r.top+r.height/2,pX_B=m-cX,pY_B=y-cY,pX_A=pX_B*(n/o),pY_A=pY_B*(n/o),dX=pX_B-pX_A,dY=pY_B-pY_A;imgOffsetX+=dX;imgOffsetY+=dY;zoomScale=n;requestAnimationFrame(updateFullscreenTransform)}
@@ -323,124 +154,26 @@
     function revokeGeneratedBlobUrls(){let c=0;for(const u of iconBlobUrls.values()){if(u){try{URL.revokeObjectURL(u);c++}catch(e){}}}iconBlobUrls.clear();if(faviconBlobUrl){try{URL.revokeObjectURL(faviconBlobUrl)}catch(e){}}faviconBlobUrl=null;if(faviconElement)faviconElement.href='#'}
     function resetSpeedDialIcons(){revokeGeneratedBlobUrls();if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(i=>{i.classList.remove('icon-error');const m=i.querySelector('img.speed-dial-icon');if(m){m.src='';m.classList.remove('loaded')}})}}
     function resetFavicon(){if(faviconBlobUrl){try{URL.revokeObjectURL(faviconBlobUrl)}catch(e){}}faviconBlobUrl=null;if(faviconElement)faviconElement.href='#'}
-    async function loadSpecificIcons(filesFromInput) { // filesFromInput is allSelectedFiles, can be removed if not used otherwise
-        if (!speedDialOptionsEl) return;
-        let iconsFoundThisRun = false;
-
-        const capasFiles = globalMediaIndex.get('_CAPAS_') || [];
-
-        const iconLoadPromises = speedDialConfig.map(async config => {
-            const speedDialItemEl = speedDialOptionsEl.querySelector(`.speed-dial-item[data-caminho="${config.originalName}"]`);
-            if (!speedDialItemEl) return;
-
-            const iconBaseName = getIconBaseName(config.originalName);
-            // No rootDirName prefix needed for lookup in _CAPAS_ as paths are already full
-            const avifPath = `${rootDirName ? rootDirName + '/' : ''}${CAPAS_FOLDER_NAME}/${iconBaseName}.avif`;
-            const jpgPath = `${rootDirName ? rootDirName + '/' : ''}${CAPAS_FOLDER_NAME}/${iconBaseName}.jpg`;
-            const pngPath = `${rootDirName ? rootDirName + '/' : ''}${CAPAS_FOLDER_NAME}/${iconBaseName}.png`;
-            
-            let iconFileMetadata = capasFiles.find(meta => 
-                meta.relativePath === avifPath || 
-                meta.relativePath === jpgPath ||
-                meta.relativePath === pngPath
-            );
-
-            const imgEl = speedDialItemEl.querySelector('img.speed-dial-icon');
-            if (iconFileMetadata && imgEl) {
-                try {
-                    const oldBlobUrl = iconBlobUrls.get(config.originalName);
-                    if (oldBlobUrl) {
-                        try { URL.revokeObjectURL(oldBlobUrl); } catch (e) { /*ignore*/ }
-                    }
-                    
-                    // Ensure fileRef is a File object before creating blob
-                    if (!(iconFileMetadata.fileRef instanceof File)) {
-                        console.error('Icon fileRef is not a File object for:', iconFileMetadata.name);
-                        throw new Error('Invalid file reference for icon.');
-                    }
-
-                    const newBlobUrl = URL.createObjectURL(iconFileMetadata.fileRef);
-                    iconBlobUrls.set(config.originalName, newBlobUrl);
-                    imgEl.src = newBlobUrl;
-                    imgEl.alt = `Ícone para ${config.displayName}`;
-                    imgEl.onload = () => imgEl.classList.add('loaded');
-                    imgEl.onerror = () => {
-                        speedDialItemEl.classList.add('icon-error');
-                        URL.revokeObjectURL(newBlobUrl);
-                        iconBlobUrls.delete(config.originalName);
-                        console.error(`Failed to load icon image: ${iconFileMetadata?.name}`);
-                    };
-                    speedDialItemEl.classList.remove('icon-error');
-                    iconsFoundThisRun = true;
-                } catch (error) {
-                    speedDialItemEl.classList.add('icon-error');
-                    if (imgEl) imgEl.src = '';
-                    console.error("Error creating blob for icon:", config.originalName, error);
-                }
-            } else {
-                speedDialItemEl.classList.add('icon-error');
-                if (imgEl) imgEl.src = '';
-            }
-        });
-
-        await Promise.allSettled(iconLoadPromises);
-
-        const statusMessage = `Pasta "${rootDirName}" carregada (${allSelectedFiles?.length || 0} arquivos). Escolha um Caminho:`;
-        setSpeedDialStatus(statusMessage);
-    }
-    async function loadSpecificFavicon(filesFromInput) { // filesFromInput is allSelectedFiles, can be removed
-        if (!faviconElement) return;
-
-        const capasFiles = globalMediaIndex.get('_CAPAS_') || [];
-        // No rootDirName prefix needed for lookup in _CAPAS_
-        const favAvifPath = `${rootDirName ? rootDirName + '/' : ''}${CAPAS_FOLDER_NAME}/fav.avif`;
-        const favJpgPath = `${rootDirName ? rootDirName + '/' : ''}${CAPAS_FOLDER_NAME}/fav.jpg`;
-
-        let faviconFileMetadata = capasFiles.find(meta => 
-            meta.relativePath === favAvifPath || meta.relativePath === favJpgPath
-        );
-
-        resetFavicon(); // Revokes old faviconBlobUrl
-
-        if (faviconFileMetadata) {
-            try {
-                 // Ensure fileRef is a File object
-                if (!(faviconFileMetadata.fileRef instanceof File)) {
-                    console.error('Favicon fileRef is not a File object for:', faviconFileMetadata.name);
-                    throw new Error('Invalid file reference for favicon.');
-                }
-                faviconBlobUrl = URL.createObjectURL(faviconFileMetadata.fileRef);
-                faviconElement.href = faviconBlobUrl;
-            } catch (error) {
-                console.error("Error creating blob URL for favicon:", error);
-                resetFavicon(); // Ensure it's reset on error
-            }
-        }
-    }
+    async function loadSpecificIcons(f){if(!speedDialOptionsEl||!f)return;let a=!1;const l=speedDialConfig.map(async c=>{const i=speedDialOptionsEl.querySelector(`.speed-dial-item[data-caminho="${c.originalName}"]`);if(!i)return;const b=getIconBaseName(c.originalName),e=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}`:`${CAPAS_FOLDER_NAME}`,pA=`${e}/${b}.avif`,pJ=`${e}/${b}.jpg`,pN=`${e}/${b}.png`;let I=findFileByPath(f,pA)||findFileByPath(f,pJ)||findFileByPath(f,pN);const m=i.querySelector('img.speed-dial-icon');if(I&&m){try{const o=iconBlobUrls.get(c.originalName);if(o){try{URL.revokeObjectURL(o)}catch(e){}}const u=URL.createObjectURL(I);iconBlobUrls.set(c.originalName,u);m.src=u;m.alt=`Ícone para ${c.displayName}`;m.onload=()=>m.classList.add('loaded');m.onerror=()=>{i.classList.add('icon-error');URL.revokeObjectURL(u);iconBlobUrls.delete(c.originalName);console.error(`Failed to load icon image: ${I?.name}`)};i.classList.remove('icon-error');a=!0}catch(r){i.classList.add('icon-error');if(m)m.src='';console.error("Error creating blob for icon:",c.originalName,r)}}else{i.classList.add('icon-error');if(m)m.src=''}});await Promise.allSettled(l);const M=`Pasta "${rootDirName}" carregada (${f?.length||0} arquivos). Escolha um Caminho:`;setSpeedDialStatus(M)}
+    async function loadSpecificFavicon(f){if(!faviconElement||!f)return;const e=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}`:`${CAPAS_FOLDER_NAME}`,fA=`${e}/fav.avif`,fJ=`${e}/fav.jpg`,F=findFileByPath(f,fA)||findFileByPath(f,fJ);resetFavicon();if(F){try{faviconBlobUrl=URL.createObjectURL(F);faviconElement.href=faviconBlobUrl}catch(r){console.error("Error creating blob URL for favicon:",r);resetFavicon()}}}
     
     function getLuckyCoverCandidates() {
-        // Retrieve cover file metadata directly from globalMediaIndex
-        const capasFilesMetadata = globalMediaIndex.get('_CAPAS_') || [];
-        if (capasFilesMetadata.length === 0) return [];
-
+        if (!allSelectedFiles) return [];
+        const capasFolderPath = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`;
         const candidates = [];
-        for (const fileMeta of capasFilesMetadata) {
-            // The fileMeta object already contains:
-            // fileMeta.name (fileName)
-            // fileMeta.relativePath
-            // fileMeta.prefix
-            // fileMeta.fileRef
-            // fileMeta.isCoverFile (should be true for _CAPAS_ items)
-
-            // Apply the same filtering logic as before
-            if (isImageFile(fileMeta.name) && !ICON_NAME_REGEX.test(fileMeta.name)) {
+        for (const file of allSelectedFiles) {
+            const relativePath = file.webkitRelativePath?.replace(/^\.\//, '');
+            const fileName = file.name;
+            if (relativePath && 
+                relativePath.startsWith(capasFolderPath) &&
+                isImageFile(fileName) && 
+                !ICON_NAME_REGEX.test(fileName)
+            ) {
                 candidates.push({
-                    fileRef: fileMeta.fileRef, // Pass the actual File object
-                    prefix: fileMeta.prefix,
-                    name: fileMeta.name,
-                    relativePath: fileMeta.relativePath
-                    // No need to re-calculate isCoverFile, it's inherently a cover if from _CAPAS_
-                    // and not an icon.
+                    fileRef: file,
+                    prefix: getFirstTwoWords(fileName),
+                    name: fileName,
+                    relativePath: relativePath
                 });
             }
         }
@@ -584,236 +317,17 @@
     }
 
 
-    // Current signature: async function processAndDisplayFilesForPath(f, t)
-    // 'f' is allSelectedFiles, 't' is selectedCaminhoName.
-    // We aim to reduce or eliminate the need for 'f'.
-    async function processAndDisplayFilesForPath(allFilesList, selectedCaminhoName) {
-        // allFilesList might not be needed if globalMediaIndex is solely used.
-        // For now, let's assume it might be used by parts of the code not yet refactored.
-        // If not, it can be removed from the signature.
-
-        if (!globalMediaIndex || globalMediaIndex.size === 0) { // Check if globalMediaIndex is populated
-            setSpeedDialStatus("Erro interno: Índice global de arquivos não disponível. Selecione a pasta 'Nucleo' novamente.", true);
-            console.error("processAndDisplayFilesForPath called without a populated globalMediaIndex.");
-            // Potentially call endOperation() or reset UI here if needed.
-            return;
-        }
-
-        const s = beginOperation();
-        resetLuckyFeature();
-        try {
-            updateMainHeader('Random Media'); // Reset header
-            if (speedDialContainerEl) speedDialContainerEl.style.display = 'none';
-            document.body.classList.remove('initial-load');
-            cleanupUIState(); // Clears mediaContainerEl, loadingIndicatorEl, etc.
-            
-            // Revoke resources from previous mediaFiles list
-            mediaFiles.forEach(revokeItemResources);
-            mediaFiles = []; // Clear the current mediaFiles array
-            // mediaIndex.clear(); // buildMediaIndex will clear and rebuild this
-
-            initialViewHistory = []; // Reset history for the new path
-            sessionViewedPrefixes.clear(); // Reset session prefixes
-
-            if (loadingIndicatorEl) {
-                loadingIndicatorEl.textContent = `Processando "${selectedCaminhoName}"...`;
-                loadingIndicatorEl.style.display = 'block';
-            }
-
-            // Get files for the selected Caminho directly from globalMediaIndex
-            const caminhoSpecificFiles = globalMediaIndex.get(selectedCaminhoName) || [];
-            // Get all cover files from globalMediaIndex
-            const coverFiles = globalMediaIndex.get('_CAPAS_') || [];
-
-            // Combine them into the new mediaFiles list for this path.
-            // The objects in globalMediaIndex should already have the correct structure.
-            mediaFiles = [...caminhoSpecificFiles, ...coverFiles];
-
-            if (s.aborted) throw new DOMException('Scan Cancelled during file preparation', 'AbortError');
-
-            if (mediaFiles.length > 0) {
-                if (loadingIndicatorEl) loadingIndicatorEl.textContent = `Indexando ${mediaFiles.length} itens para "${selectedCaminhoName}"...`;
-                
-                // buildMediaIndex will operate on the new, smaller mediaFiles list
-                buildMediaIndex(s); 
-                if (s.aborted) throw new DOMException('Indexing Cancelled for Caminho', 'AbortError');
-
-                const regularMediaInPath = mediaFiles.filter(i => !i.isCoverFile && i.caminhoName === selectedCaminhoName);
-
-                if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-
-                if (regularMediaInPath.length > 0) {
-                    if (controlsContainerEl) controlsContainerEl.style.display = 'flex';
-                    // getRandomInitialMedia will also operate on the smaller regularMediaInPath
-                    await displayMedia(getRandomInitialMedia(regularMediaInPath, MAX_INITIAL_ITEMS), s, true);
-                    
-                    const uniquePrefixesInPath = Array.from(new Set(regularMediaInPath.map(file => file.prefix).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-                    showCaminhoSidebar(selectedCaminhoName, uniquePrefixesInPath);
-                } else {
-                    // No regular media found in this specific Caminho
-                    if (mediaContainerEl) mediaContainerEl.style.display = 'none';
-                    if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-                    if (speedDialContainerEl) speedDialContainerEl.style.display = 'flex';
-                    document.body.classList.add('initial-load');
-                    activateLuckyFeature();
-                    setSpeedDialStatus(`"${selectedCaminhoName}" não contém arquivos de mídia regulares. Selecione outro.`, false);
-                    hideCaminhoSidebar();
-                    endOperation(true);
-                    return;
-                }
-            } else {
-                // No files at all (neither regular nor covers related to this selection logic)
-                if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-                if (mediaContainerEl) mediaContainerEl.style.display = 'none';
-                if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-                if (speedDialContainerEl) speedDialContainerEl.style.display = 'flex';
-                document.body.classList.add('initial-load');
-                activateLuckyFeature();
-                setSpeedDialStatus(`Nenhum arquivo de mídia relevante encontrado para "${selectedCaminhoName}". Selecione outro.`, true);
-                hideCaminhoSidebar();
-                endOperation(true);
-                return;
-            }
-            endOperation(true);
-        } catch (e) {
-            if (e.name !== 'AbortError') {
-                console.error(`Error processing path "${selectedCaminhoName}":`, e);
-            }
-            cleanupUIState();
-            if (mediaContainerEl) mediaContainerEl.style.display = 'none';
-            if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-            if (speedDialContainerEl) speedDialContainerEl.style.display = 'flex';
-            document.body.classList.add('initial-load');
-            if (loadingIndicatorEl) loadingIndicatorEl.style.display = 'none';
-            const m = e.name === 'AbortError' ? `Operação cancelada ao processar "${selectedCaminhoName}".` : `Erro ao processar "${selectedCaminhoName}": ${e.message || 'Erro desconhecido'}.`;
-            activateLuckyFeature();
-            setSpeedDialStatus(m, e.name !== 'AbortError');
-            // resetSpeedDialIcons(); // Icons are global, not path specific for loading
-            // resetFavicon(); // Favicon is global
-            hideCaminhoSidebar();
-            endOperation(false);
-        }
-    }
-    function handleSearchInput() {
-        if (!searchInputEl || !searchSuggestionsEl || !mediaIndex) return;
-
-        // Abort any pending thumbnail loading from previous input
-        if (suggestionAbortController) {
-            suggestionAbortController.abort();
-        }
-        suggestionAbortController = new AbortController();
-        const currentSearchSignal = suggestionAbortController.signal;
-
-        const t = searchInputEl.value.trim().toLowerCase();
-        searchSuggestionsEl.innerHTML = '';
-        if (t.length === 0) {
-            searchSuggestionsEl.style.display = 'none';
-            return;
-        }
-
-        const n = new Map(); // Using 'n' as in original code (Map of prefix to coverFileMeta)
-        for (const e of mediaIndex.keys()) { // e is a prefix string from current Caminho's mediaIndex
-            if (e.startsWith(t) && !/^icon(\s*\d*)?$/i.test(e)) { // Exclude icon-like prefixes
-                const i = mediaIndex.get(e); // i is {covers: [], regulars: []}
-                if (i && i.covers && i.covers.length > 0) {
-                    const o = i.covers[0]; // o is a fileMeta object for one cover
-                    if (o && o.prefix) { // Ensure prefix exists on the cover object
-                        if (!n.has(o.prefix)) {
-                            n.set(o.prefix, o); // Store the cover fileMeta object
-                            if (n.size >= MAX_SEARCH_SUGGESTIONS) break;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (n.size > 0) {
-            const s_sortedPrefixes = Array.from(n.keys()).sort((a, b) => a.localeCompare(b)); // s_sortedPrefixes is sorted array of prefixes
-            const c_fragment = document.createDocumentFragment(); // c_fragment is document fragment
-            for (const e_prefix of s_sortedPrefixes) { // e_prefix is a prefix string
-                const i_coverFileMeta = n.get(e_prefix); // i_coverFileMeta is the coverFileMeta object
-                const o_suggestionItemDiv = document.createElement('div'); // o_suggestionItemDiv is suggestion item div
-                o_suggestionItemDiv.className = 'suggestion-item';
-                o_suggestionItemDiv.title = `Mostrar mídia para "${e_prefix}"`;
-                o_suggestionItemDiv.setAttribute('role', 'option');
-                o_suggestionItemDiv.tabIndex = -1;
-                const l_thumbnailImg = document.createElement('img'); // l_thumbnailImg is thumbnail img
-                l_thumbnailImg.className = 'suggestion-thumbnail';
-                l_thumbnailImg.alt = `Capa para ${e_prefix}`;
-                o_suggestionItemDiv.appendChild(l_thumbnailImg);
-
-                // Async load thumbnail, passing the currentSearchSignal
-                (async () => {
-                    try {
-                        if (currentSearchSignal.aborted) return; // Check before starting
-                        if (i_coverFileMeta) { 
-                            if (!i_coverFileMeta.blobUrl || i_coverFileMeta.loadSuccess !== true) {
-                                // Pass currentSearchSignal to loadBlobForItem
-                                await loadBlobForItem(i_coverFileMeta, currentSearchSignal);
-                            }
-                            if (currentSearchSignal.aborted) return; // Check after await
-                            
-                            if (i_coverFileMeta.blobUrl && i_coverFileMeta.loadSuccess === true) {
-                                l_thumbnailImg.src = i_coverFileMeta.blobUrl;
-                                l_thumbnailImg.onload = () => { if (!currentSearchSignal.aborted) l_thumbnailImg.classList.add('loaded'); };
-                                l_thumbnailImg.onerror = () => { if (!currentSearchSignal.aborted) l_thumbnailImg.style.display = 'none'; console.warn(`Error rendering suggestion thumbnail for ${e_prefix}`); };
-                            } else {
-                                if (!currentSearchSignal.aborted) l_thumbnailImg.style.display = 'none';
-                            }
-                        } else {
-                            if (!currentSearchSignal.aborted) l_thumbnailImg.style.display = 'none';
-                        }
-                    } catch (a) {
-                        if (a.name !== 'AbortError') {
-                            console.warn(`Error in async load for suggestion thumbnail ${e_prefix}:`, a);
-                            if (!currentSearchSignal.aborted) l_thumbnailImg.style.display = 'none';
-                        }
-                    }
-                })();
-
-                const r_textSpan = document.createElement('span'); // r_textSpan is suggestion text span
-                r_textSpan.className = 'suggestion-text';
-                r_textSpan.textContent = e_prefix;
-                o_suggestionItemDiv.appendChild(r_textSpan);
-                o_suggestionItemDiv.addEventListener('mousedown', evt => { evt.preventDefault(); handleSuggestionClick(e_prefix); });
-                o_suggestionItemDiv.addEventListener('keydown', evt => { if (evt.key === 'Enter') handleSuggestionClick(e_prefix); });
-                c_fragment.appendChild(o_suggestionItemDiv);
-            }
-            searchSuggestionsEl.appendChild(c_fragment);
-            searchSuggestionsEl.style.display = 'block';
-        } else {
-            searchSuggestionsEl.style.display = 'none';
-        }
-    }
-
-    function handleSuggestionClick(p) {
-        if (suggestionAbortController) {
-            suggestionAbortController.abort(); // Cancel pending thumbnail loads
-            suggestionAbortController = null;
-        }
-        if (!searchInputEl || !searchSuggestionsEl || isLoading) return;
-        searchSuggestionsEl.innerHTML='';
-        searchSuggestionsEl.style.display='none';
-        resetLuckyFeature(); 
-        if (speedDialContainerEl) speedDialContainerEl.style.display = 'none'; 
-        document.body.classList.remove('initial-load'); 
-        hideCaminhoSidebar(); 
-        displayGlobalMediaByPrefix(p);
-    }
-
-    function hideSuggestionsOnClickOutside(e) {
-        if (!searchInputEl || !searchSuggestionsEl) return;
-        if (!e.target.closest('.search-container') && !e.target.closest('#search-suggestions')) {
-            if (searchSuggestionsEl.innerHTML !== '') { // Only abort if there were suggestions
-                 if (suggestionAbortController) {
-                    suggestionAbortController.abort();
-                    suggestionAbortController = null;
-                }
-            }
-            searchSuggestionsEl.innerHTML = '';
-            searchSuggestionsEl.style.display = 'none';
-        }
-    }
+    async function processAndDisplayFilesForPath(f,t){if(!f){setSpeedDialStatus("Erro interno: Lista de arquivos não disponível.",!0);return}const s=beginOperation();resetLuckyFeature();try{
+        updateMainHeader('Random Media'); // Reset header
+        if(speedDialContainerEl)speedDialContainerEl.style.display='none';document.body.classList.remove('initial-load');cleanupUIState();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();initialViewHistory=[];sessionViewedPrefixes.clear();if(loadingIndicatorEl){loadingIndicatorEl.textContent=`Processando "${t}"...`;loadingIndicatorEl.style.display='block'}const pP=rootDirName?`${rootDirName}/${t}/`:`${t}/`,cP=rootDirName?`${rootDirName}/${CAPAS_FOLDER_NAME}/`:`${CAPAS_FOLDER_NAME}/`;let c=0;for(const i of f){if(s.aborted)throw new DOMException('Scan Cancelled during file iteration','AbortError');if(c++%100===0&&loadingIndicatorEl&&isLoading){loadingIndicatorEl.textContent=`Processando arquivos para "${t}"... (${c}/${f.length})`;await delay(1,s)}const r=i.webkitRelativePath?.replace(/^\.\//,'');if(!r||!isMediaFile(i.name))continue;const h=r.split('/');if(h.length<2)continue;const n=h[h.length-1],k=h.slice(0,-1),d=k.join('/')+'/',I=d===cP||r.startsWith(cP);let R=d.startsWith(pP)||r.startsWith(pP),O=!1;if(R){O=k.some(g=>g.toLowerCase()===ORIGINAIS_FOLDER_NAME)}if(I||R){const P=getFirstTwoWords(n);mediaFiles.push({name:n,fileRef:i,relativePath:r,isCoverFile:I,isOriginal:O,prefix:P,blobUrl:null,type:null,loadSuccess:null,abortController:null})}}if(s.aborted)throw new DOMException('Processing Operation Cancelled after file iteration','AbortError');if(mediaFiles.length>0){if(loadingIndicatorEl)loadingIndicatorEl.textContent=`Indexando ${mediaFiles.length} itens...`;buildMediaIndex(s);if(s.aborted)throw new DOMException('Indexing Cancelled','AbortError');const N=mediaFiles.filter(i=>!i.isCoverFile);if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(N.length>0){if(controlsContainerEl)controlsContainerEl.style.display='flex';await displayMedia(getRandomInitialMedia(N,MAX_INITIAL_ITEMS),s,!0);
+            const uniquePrefixesInPath = Array.from(new Set(N.map(file => file.prefix).filter(Boolean))).sort((a,b) => a.localeCompare(b));
+            showCaminhoSidebar(t, uniquePrefixesInPath);
+        }else{if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`"${t}" não contém arquivos de mídia regulares. Selecione outro.`,!1);hideCaminhoSidebar();endOperation(!0);return}}else{if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');activateLuckyFeature();setSpeedDialStatus(`Nenhum arquivo de mídia relevante encontrado para "${t}". Selecione outro.`,!0);hideCaminhoSidebar();endOperation(!0);return}endOperation(!0)}catch(e){if(e.name!=='AbortError'){console.error(`Error processing path "${t}":`,e)}cleanupUIState();if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');if(loadingIndicatorEl)loadingIndicatorEl.style.display='none';const m=e.name==='AbortError'?`Operação cancelada ao processar "${t}".`:`Erro ao processar "${t}": ${e.message||'Erro desconhecido'}.`;activateLuckyFeature();setSpeedDialStatus(m,e.name!=='AbortError');resetSpeedDialIcons();resetFavicon();hideCaminhoSidebar();endOperation(!1)}}
+    function handleSearchInput(){if(!searchInputEl||!searchSuggestionsEl||!mediaIndex)return;const t=searchInputEl.value.trim().toLowerCase();searchSuggestionsEl.innerHTML='';if(t.length===0){searchSuggestionsEl.style.display='none';return}const n=new Map();for(const e of mediaIndex.keys()){if(e.startsWith(t)&&!/^icon(\s*\d*)?$/i.test(e)){const i=mediaIndex.get(e);if(i&&i.covers&&i.covers.length>0){const o=i.covers[0];if(o&&o.prefix){if(!n.has(o.prefix)){n.set(o.prefix,o);if(n.size>=MAX_SEARCH_SUGGESTIONS)break}}}}}if(n.size>0){const s=Array.from(n.keys()).sort((a,b)=>a.localeCompare(b)),c=document.createDocumentFragment();for(const e of s){const i=n.get(e),o=document.createElement('div');o.className='suggestion-item';o.title=`Mostrar mídia para "${e}"`;o.setAttribute('role','option');o.tabIndex=-1;const l=document.createElement('img');l.className='suggestion-thumbnail';l.alt=`Capa para ${e}`;o.appendChild(l);(async()=>{try{if(i){if(!i.blobUrl||i.loadSuccess!==!0){await loadBlobForItem(i,null)}if(i.blobUrl&&i.loadSuccess===!0){l.src=i.blobUrl;l.onload=()=>l.classList.add('loaded');l.onerror=()=>{l.style.display='none';console.warn(`Error rendering suggestion thumbnail for ${e}`)}}else{l.style.display='none'}}else{l.style.display='none'}}catch(a){console.warn(`Error in async load for suggestion thumbnail ${e}:`,a);l.style.display='none'}})();const r=document.createElement('span');r.className='suggestion-text';r.textContent=e;o.appendChild(r);o.addEventListener('mousedown',a=>{a.preventDefault();handleSuggestionClick(e)});o.addEventListener('keydown',a=>{if(a.key==='Enter')handleSuggestionClick(e)});c.appendChild(o)}searchSuggestionsEl.appendChild(c);searchSuggestionsEl.style.display='block'}else{searchSuggestionsEl.style.display='none'}}
+    function handleSuggestionClick(p){if(!searchInputEl||!searchSuggestionsEl||isLoading)return;searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none';resetLuckyFeature(); if(speedDialContainerEl) speedDialContainerEl.style.display = 'none'; document.body.classList.remove('initial-load'); 
+    hideCaminhoSidebar(); 
+    displayGlobalMediaByPrefix(p)}
+    function hideSuggestionsOnClickOutside(e){if(!searchInputEl||!searchSuggestionsEl)return;if(!e.target.closest('.search-container')&&!e.target.closest('#search-suggestions')){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}}
     function loadSpeedDialConfig(){try{const s=localStorage.getItem(SPEED_DIAL_CONFIG_KEY);if(s){const p=JSON.parse(s);if(Array.isArray(p)&&p.every(i=>i&&typeof i.originalName==='string'&&typeof i.displayName==='string')){const c=new Set(p.map(i=>i.originalName)),d=new Set(CAMINHO_FOLDER_NAMES);if(c.size===d.size&&[...c].every(n=>d.has(n))){speedDialConfig=p;return}else{console.warn("Speed dial config mismatch with defaults. Resetting.");throw new Error("Config mismatch")}}else{console.warn("Invalid speed dial config found in localStorage. Resetting.")}}}catch(e){console.error("Failed to load or parse speed dial config. Resetting to default.",e)}speedDialConfig=CAMINHO_FOLDER_NAMES.map(n=>({originalName:n,displayName:n}));saveSpeedDialConfig()}
     function saveSpeedDialConfig(){try{localStorage.setItem(SPEED_DIAL_CONFIG_KEY,JSON.stringify(speedDialConfig))}catch(e){console.error("Failed to save speed dial config to localStorage:",e);setSpeedDialStatus("Não foi possível salvar a ordem/nomes dos itens.",!0)}}
     async function handleCaminhoSelection(e){const t=e.target.closest('.speed-dial-item');if(isLoading||!allSelectedFiles||!t){if(!allSelectedFiles&&!isLoading)setSpeedDialStatus("Selecione a pasta 'Nucleo' primeiro.",!0);return}const o=t.dataset.caminho;if(!o){console.error("Clicked speed dial item missing 'data-caminho' attribute.",t);setSpeedDialStatus("Erro ao identificar o caminho selecionado.",!0);return}resetLuckyFeature(); await processAndDisplayFilesForPath(allSelectedFiles,o)}
@@ -824,185 +338,7 @@
     function handleDragLeave(e){const t=e.target.closest('.speed-dial-item');if(t){t.classList.remove('drag-over')}}
     function handleDrop(e){e.preventDefault();const t=e.target.closest('.speed-dial-item');if(!t||t.dataset.caminho===draggedItemOriginalName||!draggedItemOriginalName){if(t)t.classList.remove('drag-over');return}const o=t.dataset.caminho;t.classList.remove('drag-over');const d=speedDialConfig.findIndex(i=>i.originalName===draggedItemOriginalName),g=speedDialConfig.findIndex(i=>i.originalName===o);if(d!==-1&&g!==-1){const[r]=speedDialConfig.splice(d,1);speedDialConfig.splice(g,0,r);saveSpeedDialConfig();renderSpeedDialItems();setSpeedDialStatus("Ordem atualizada.",!1)}draggedItemOriginalName=null}
     function handleDragEnd(e){const i=e.target.closest('.speed-dial-item');if(i){i.classList.remove('dragging')}document.querySelectorAll('.speed-dial-item.drag-over').forEach(el=>el.classList.remove('drag-over'));draggedItemOriginalName=null}
-    async function handleFolderSelection(e) {
-        const currentOperationSignal = beginOperation(); 
-        const f = e.target.files;
-        const i = e.target; // folderInputEl
-    
-        if (!f || f.length === 0) {
-            setSpeedDialStatus("Nenhuma pasta selecionada ou seleção cancelada.", false);
-            allSelectedFiles = null;
-            rootDirName = '';
-            if (selectNucleoButtonEl) selectNucleoButtonEl.style.display = 'inline-block';
-            if (speedDialOptionsEl) speedDialOptionsEl.style.display = 'none';
-            resetSpeedDialIcons();
-            resetFavicon();
-            resetLuckyFeature();
-            document.body.classList.add('initial-load');
-            if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-            if (i) i.value = null;
-            hideCaminhoSidebar();
-            updateMainHeader('Random Media');
-            endOperation(true); 
-            return;
-        }
-    
-        let r = "Seleção";
-        if (f[0]?.webkitRelativePath) {
-            const F_firstPath = f[0].webkitRelativePath.replace(/^\.\//, '');
-            const s_firstRoot = F_firstPath.split('/')[0];
-            if (s_firstRoot) {
-                r = s_firstRoot;
-                // No need to check all paths for consistency here, rootDirName is determined and used.
-            }
-        }
-        rootDirName = r;
-    
-        allSelectedFiles = f; 
-        globalMediaIndex.clear();
-        mediaFiles.forEach(revokeItemResources); 
-        mediaFiles = [];
-        mediaIndex.clear(); 
-        initialViewHistory = [];
-        sessionViewedPrefixes.clear();
-        
-        cleanupUIState(); 
-        resetSpeedDialIcons();
-        resetFavicon();
-        resetLuckyFeature();
-        updateMainHeader('Random Media');
-        if (controlsContainerEl) controlsContainerEl.style.display = 'none';
-        if (selectNucleoButtonEl) selectNucleoButtonEl.style.display = 'none';
-        if (document.getElementById('speed-dial-subtitle')) document.getElementById('speed-dial-subtitle').style.display = 'none';
-        if (speedDialOptionsEl) speedDialOptionsEl.style.display = 'grid'; 
-        
-        document.body.classList.add('initial-load');
-        if (speedDialOptionsEl) {
-            speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t => {
-                t.style.pointerEvents = 'auto';
-                t.removeAttribute('aria-disabled');
-            });
-        }
-        if (folderInputEl) folderInputEl.value = null; 
-        renderSpeedDialItems(); 
-    
-        let processedFileCount = 0;
-        const totalFiles = f.length;
-        setSpeedDialStatus(`Iniciando processamento de ${totalFiles} arquivos...`);
-    
-        try {
-            for (const file of f) {
-                if (currentOperationSignal.aborted) {
-                    throw new DOMException('Folder selection cancelled by user', 'AbortError');
-                }
-    
-                const relativePath = file.webkitRelativePath?.replace(/^\.\//, '');
-                if (!relativePath) continue; 
-    
-                // Early skip for clearly non-relevant files, can be refined
-                if (!isMediaFile(file.name) && !ICON_NAME_REGEX.test(file.name) && file.name.toLowerCase() !== 'fav.jpg' && file.name.toLowerCase() !== 'fav.avif') {
-                    processedFileCount++; // Count it as processed for status updates
-                    if (processedFileCount % 200 === 0) {
-                        setSpeedDialStatus(`Processando arquivos... (${processedFileCount}/${totalFiles})`);
-                        await delay(1, currentOperationSignal);
-                    }
-                    continue; 
-                }
-    
-                const pathParts = relativePath.split('/');
-                if (pathParts.length < (rootDirName && rootDirName !== '' ? 2 : 1)) {
-                     processedFileCount++; continue;
-                }
-    
-                const fileName = pathParts[pathParts.length - 1];
-                const prefix = getFirstTwoWords(fileName); 
-                let isCover = false;
-                let isOriginal = false;
-                let inCaminho = false;
-                let currentCaminhoName = null;
-    
-                const capasFolderPath = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`;
-                const relativeDir = pathParts.slice(0, -1).join('/') + (pathParts.length > 1 ? '/' : '');
-    
-                if (relativeDir === capasFolderPath || relativePath.startsWith(capasFolderPath)) {
-                    isCover = true;
-                    currentCaminhoName = '_CAPAS_';
-                } else {
-                    for (const caminho of CAMINHO_FOLDER_NAMES) {
-                        const caminhoPath = rootDirName ? `${rootDirName}/${caminho}/` : `${caminho}/`;
-                        if (relativeDir.startsWith(caminhoPath)) {
-                            inCaminho = true;
-                            currentCaminhoName = caminho;
-                            isOriginal = pathParts.some(part => part.toLowerCase() === ORIGINAIS_FOLDER_NAME.toLowerCase());
-                            break;
-                        }
-                    }
-                }
-    
-                if ((isCover || inCaminho) && isMediaFile(file.name)) { 
-                    const fileMetadata = {
-                        name: fileName,
-                        relativePath: relativePath,
-                        isCoverFile: isCover,
-                        isOriginal: isOriginal,
-                        prefix: prefix,
-                        caminhoName: currentCaminhoName,
-                        fileRef: file,
-                        blobUrl: null, 
-                        type: null,    
-                        loadSuccess: null, 
-                        abortController: null 
-                    };
-    
-                    if (!globalMediaIndex.has(currentCaminhoName)) {
-                        globalMediaIndex.set(currentCaminhoName, []);
-                    }
-                    globalMediaIndex.get(currentCaminhoName).push(fileMetadata);
-                }
-    
-                processedFileCount++;
-                if (processedFileCount % 200 === 0) { 
-                    setSpeedDialStatus(`Processando arquivos... (${processedFileCount}/${totalFiles})`);
-                    await delay(1, currentOperationSignal); 
-                }
-            }
-    
-            if (currentOperationSignal.aborted) {
-                 throw new DOMException('Folder selection cancelled during processing', 'AbortError');
-            }
-    
-            setSpeedDialStatus(`Indexação completa. Carregando ícones e recursos...`);
-            await delay(1, currentOperationSignal); 
-    
-            await loadSpecificIcons(allSelectedFiles); 
-            if (currentOperationSignal.aborted) throw new DOMException('Cancelled after icon loading', 'AbortError');
-            
-            await loadSpecificFavicon(allSelectedFiles); 
-            if (currentOperationSignal.aborted) throw new DOMException('Cancelled after favicon loading', 'AbortError');
-    
-            activateLuckyFeature(); 
-            
-            if (!currentOperationSignal.aborted) {
-                 setSpeedDialStatus(`Pasta "${rootDirName}" carregada (${totalFiles} arquivos). Escolha um Caminho:`);
-            }
-    
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                setSpeedDialStatus(`Seleção de pasta cancelada.`, false); // Simpler message
-                cleanupUIState();
-                mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();globalMediaIndex.clear();allSelectedFiles=null;
-                if(selectNucleoButtonEl) selectNucleoButtonEl.style.display = 'inline-block';
-                if(speedDialOptionsEl) speedDialOptionsEl.style.display = 'none';
-                if(document.getElementById('speed-dial-subtitle')) document.getElementById('speed-dial-subtitle').style.display='block';
-                renderSpeedDialItems(); 
-            } else {
-                console.error("Error during folder selection processing:", err);
-                setSpeedDialStatus(`Erro ao processar pasta: ${err.message}`, true);
-            }
-        } finally {
-            endOperation(true); 
-        }
-    }
+    async function handleFolderSelection(e){if(isLoading)return;const f=e.target.files,i=e.target;if(!f||f.length===0){setSpeedDialStatus("Nenhuma pasta selecionada ou seleção cancelada.",!1);allSelectedFiles=null;rootDirName='';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='inline-block';if(speedDialOptionsEl)speedDialOptionsEl.style.display='none';resetSpeedDialIcons();resetFavicon();resetLuckyFeature();document.body.classList.add('initial-load');if(controlsContainerEl) controlsContainerEl.style.display = 'none';i.value=null;hideCaminhoSidebar(); updateMainHeader('Random Media'); return}let r="Seleção",p=!0;if(f[0]?.webkitRelativePath){const F=f[0].webkitRelativePath.replace(/^\.\//,''),s=F.split('/')[0];if(s){r=s;for(let t=1;t<f.length;t++){const l=f[t].webkitRelativePath?.replace(/^\.\//,'');if(!l||!l.startsWith(r+'/')){p=!1;r="Seleção";console.warn("Inconsistent paths detected. Not a single root folder selection.");break}}}}else{p=!1}allSelectedFiles=f;rootDirName=r;initialViewHistory=[];sessionViewedPrefixes.clear();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();cleanupUIState();resetSpeedDialIcons();resetFavicon();resetLuckyFeature(); updateMainHeader('Random Media'); if(controlsContainerEl)controlsContainerEl.style.display='none';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='none';if(document.getElementById('speed-dial-subtitle'))document.getElementById('speed-dial-subtitle').style.display='none';if(speedDialOptionsEl)speedDialOptionsEl.style.display='grid';setSpeedDialStatus(`Pasta "${rootDirName}" carregada (${f.length} arquivos). Carregando recursos...`);document.body.classList.add('initial-load');if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t=>{t.style.pointerEvents='auto';t.removeAttribute('aria-disabled')})}i.value=null;renderSpeedDialItems();await loadSpecificIcons(allSelectedFiles);await loadSpecificFavicon(allSelectedFiles);activateLuckyFeature();hideCaminhoSidebar();}
     async function handleReturnToSpeedDialClick(){if(isLoading)return;const s=beginOperation();try{
         updateMainHeader('Random Media'); // Reset header
         cleanupUIState();if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');setSpeedDialStatus("Selecione um Caminho ou carregue uma nova pasta 'Nucleo'.",!1);mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();initialViewHistory=[];sessionViewedPrefixes.clear();hideCaminhoSidebar();endOperation(!0);activateLuckyFeature();}catch(e){if(e.name!=='AbortError'){console.error("Error returning to speed dial:",e);setSpeedDialStatus("Erro ao retornar ao início. Verifique o console.",!0)}endOperation(!1); return;}
@@ -1041,62 +377,8 @@
         hideCaminhoSidebar(); 
     }
     
-    }else{const e="text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Nada a exibir (sem mídia regular neste Caminho).</p>`;mediaContainerEl.style.display='block'} if(controlsContainerEl)controlsContainerEl.style.display='flex'; hideCaminhoSidebar();}endOperation(!0)}catch(r){if(r.name!=='AbortError'){console.error("Error displaying new random media:",r);const e="color:var(--error-text); text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Erro ao exibir nova mídia: ${r.message||'Erro desconhecido'}</p>`;mediaContainerEl.style.display='block'}endOperation(!1)}else{console.log("Display new media cancelled.");endOperation(!1)}}});
-    searchInputEl.addEventListener('input',handleSearchInput);
-    searchInputEl.addEventListener('blur', e => {
-        setTimeout(() => {
-            if (!searchSuggestionsEl || !document.activeElement || !document.activeElement.closest('#search-suggestions')) {
-                if (searchSuggestionsEl && searchSuggestionsEl.innerHTML !== '') {
-                    if (suggestionAbortController) {
-                        suggestionAbortController.abort();
-                        suggestionAbortController = null;
-                    }
-                }
-                if (searchSuggestionsEl) {
-                    searchSuggestionsEl.innerHTML = '';
-                    searchSuggestionsEl.style.display = 'none';
-                }
-            }
-        }, 150);
-    });
-    document.addEventListener('click',hideSuggestionsOnClickOutside);
-    searchInputEl.setAttribute('autocomplete','off');
-    searchInputEl.disabled=!0;
-    searchInputEl.addEventListener('keydown', e => {
-        if (!searchSuggestionsEl || searchSuggestionsEl.style.display === 'none' || searchSuggestionsEl.children.length === 0) return;
-        const suggestions = Array.from(searchSuggestionsEl.children);
-        let activeIndex = suggestions.findIndex(item => item.classList.contains('active'));
-
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            suggestions[activeIndex]?.classList.remove('active');
-            activeIndex = (activeIndex + 1) % suggestions.length;
-            suggestions[activeIndex].classList.add('active');
-            suggestions[activeIndex].scrollIntoView({ block: 'nearest' });
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            suggestions[activeIndex]?.classList.remove('active');
-            activeIndex = (activeIndex - 1 + suggestions.length) % suggestions.length;
-            suggestions[activeIndex].classList.add('active');
-            suggestions[activeIndex].scrollIntoView({ block: 'nearest' });
-        } else if (e.key === 'Enter') {
-            if (activeIndex > -1) {
-                e.preventDefault();
-                // Trigger the mousedown event which calls handleSuggestionClick
-                suggestions[activeIndex].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-            }
-        } else if (e.key === 'Escape') {
-            if (suggestionAbortController) {
-                suggestionAbortController.abort();
-                suggestionAbortController = null;
-            }
-            searchSuggestionsEl.innerHTML = '';
-            searchSuggestionsEl.style.display = 'none';
-        }
-    });
-    document.addEventListener('keydown',handleGlobalKeyDown);setSpeedDialStatus("Por favor, selecione a pasta 'Nucleo'.")});
+    }else{const e="text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Nada a exibir (sem mídia regular neste Caminho).</p>`;mediaContainerEl.style.display='block'} if(controlsContainerEl)controlsContainerEl.style.display='flex'; hideCaminhoSidebar();}endOperation(!0)}catch(r){if(r.name!=='AbortError'){console.error("Error displaying new random media:",r);const e="color:var(--error-text); text-align: center; width: 100%; column-span: all; padding: 20px 0;";if(mediaContainerEl){mediaContainerEl.innerHTML=`<p style="${e}">Erro ao exibir nova mídia: ${r.message||'Erro desconhecido'}</p>`;mediaContainerEl.style.display='block'}endOperation(!1)}else{console.log("Display new media cancelled.");endOperation(!1)}}});searchInputEl.addEventListener('input',handleSearchInput);searchInputEl.addEventListener('blur',e=>{setTimeout(()=>{if(!searchSuggestionsEl||!document.activeElement||!document.activeElement.closest('#search-suggestions')){if(searchSuggestionsEl){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}}},150)});document.addEventListener('click',hideSuggestionsOnClickOutside);searchInputEl.setAttribute('autocomplete','off');searchInputEl.disabled=!0;searchInputEl.addEventListener('keydown',e=>{if(!searchSuggestionsEl||searchSuggestionsEl.style.display==='none'||searchSuggestionsEl.children.length===0)return;const s=Array.from(searchSuggestionsEl.children);let a=s.findIndex(i=>i.classList.contains('active'));if(e.key==='ArrowDown'){e.preventDefault();s[a]?.classList.remove('active');a=(a+1)%s.length;s[a].classList.add('active');s[a].scrollIntoView({block:'nearest'})}else if(e.key==='ArrowUp'){e.preventDefault();s[a]?.classList.remove('active');a=(a-1+s.length)%s.length;s[a].classList.add('active');s[a].scrollIntoView({block:'nearest'})}else if(e.key==='Enter'){if(a>-1){e.preventDefault();s[a].dispatchEvent(new MouseEvent('mousedown'))}}else if(e.key==='Escape'){searchSuggestionsEl.innerHTML='';searchSuggestionsEl.style.display='none'}});document.addEventListener('keydown',handleGlobalKeyDown);setSpeedDialStatus("Por favor, selecione a pasta 'Nucleo'.")});
 </script>
 </body>
 </html>
-
 
