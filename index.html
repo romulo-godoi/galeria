@@ -861,55 +861,77 @@
 
     async function loadSpecificFavicon(sourceOrSignal) { // Can be allSelectedFiles (legacy) or AbortSignal (new API)
         if (!faviconElement) return;
-        resetFavicon(); // Clear existing favicon
+        resetFavicon(); // Clear existing favicon, revokes old blob if any
+
         let foundFaviconFile = null;
+        const signal = (sourceOrSignal instanceof AbortSignal) ? sourceOrSignal : null;
 
-        if (rootDirectoryHandle) { // New API Path
-            const signal = sourceOrSignal instanceof AbortSignal ? sourceOrSignal : null;
-            let capasDirHandle;
-            try {
-                // Use CAPAS_FOLDER_NAME directly as rootDirectoryHandle is the root.
-                capasDirHandle = await rootDirectoryHandle.getDirectoryHandle(CAPAS_FOLDER_NAME, { create: false });
-            } catch (e) {
-                if (e.name === 'NotFoundError') console.warn(`loadSpecificFavicon: Diretório de capas "${CAPAS_FOLDER_NAME}" não encontrado.`);
-                else console.error(`loadSpecificFavicon: Erro ao acessar diretório de capas:`, e);
-                return;
-            }
-            if (signal?.aborted) return;
-
-            const possibleNames = ['fav.avif', 'fav.jpg', 'fav.png', 'fav.jpeg'];
-            for (const name of possibleNames) {
+        try {
+            if (rootDirectoryHandle) { // New API Path
                 if (signal?.aborted) return;
+                let capasDirHandle;
                 try {
-                    const fileHandle = await capasDirHandle.getFileHandle(name, { create: false });
-                    if (fileHandle) {
-                        foundFaviconFile = await fileHandle.getFile(); // Get the actual File object
-                        break;
-                    }
-                } catch (e) { /* File not found, try next */ }
+                    capasDirHandle = await rootDirectoryHandle.getDirectoryHandle(CAPAS_FOLDER_NAME, { create: false });
+                } catch (e) {
+                    if (e.name === 'NotFoundError') console.warn(`loadSpecificFavicon: Diretório de capas "${CAPAS_FOLDER_NAME}" não encontrado.`);
+                    else console.error(`loadSpecificFavicon: Erro ao acessar diretório de capas:`, e);
+                    return; // No capas directory, no favicon to load
+                }
+                if (signal?.aborted) return;
+
+                const possibleNames = ['fav.avif', 'fav.jpg', 'fav.png', 'fav.jpeg'];
+                for (const name of possibleNames) {
+                    if (signal?.aborted) break;
+                    try {
+                        const fileHandle = await capasDirHandle.getFileHandle(name, { create: false });
+                        if (fileHandle) {
+                            foundFaviconFile = await fileHandle.getFile(); // Get the actual File object
+                            break; // Found it
+                        }
+                    } catch (e) { /* File not found, try next */ }
+                }
+                if (signal?.aborted && foundFaviconFile) {
+                    // If aborted after getting file but before creating blob, nullify to prevent use
+                    foundFaviconFile = null;
+                }
+
+            } else if (sourceOrSignal && Array.isArray(sourceOrSignal)) { // Legacy Path
+                const allFiles = sourceOrSignal; // Rename for clarity within this block
+                const capasDir = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}` : CAPAS_FOLDER_NAME;
+                const favAVIF = `${capasDir}/fav.avif`;
+                const favJPG = `${capasDir}/fav.jpg`;
+                const favPNG = `${capasDir}/fav.png`;
+                const favJPEG = `${capasDir}/fav.jpeg`;
+                foundFaviconFile = findFileByPath(allFiles, favAVIF) ||
+                                   findFileByPath(allFiles, favJPG) ||
+                                   findFileByPath(allFiles, favPNG) ||
+                                   findFileByPath(allFiles, favJPEG);
             }
-            if (signal?.aborted && foundFaviconFile) { /* Blob not created yet, safe to return */ return; }
 
-        } else if (sourceOrSignal && Array.isArray(sourceOrSignal)) { // Legacy Path
-            const allSelectedFiles = sourceOrSignal;
-            const capasDir = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}` : CAPAS_FOLDER_NAME;
-            const favAVIF = `${capasDir}/fav.avif`;
-            const favJPG = `${capasDir}/fav.jpg`;
-            const favPNG = `${capasDir}/fav.png`;
-            const favJPEG = `${capasDir}/fav.jpeg`;
-            foundFaviconFile = findFileByPath(allSelectedFiles, favAVIF) ||
-                               findFileByPath(allSelectedFiles, favJPG) ||
-                               findFileByPath(allSelectedFiles, favPNG) ||
-                               findFileByPath(allSelectedFiles, favJPEG);
-        }
+            if (signal?.aborted && foundFaviconFile) {
+                 // Aborted just before blob creation, ensure we don't proceed
+                 foundFaviconFile = null;
+            }
 
-        if (foundFaviconFile) {
-            try {
+            if (foundFaviconFile) {
+                // Previous faviconBlobUrl should have been revoked by resetFavicon()
                 faviconBlobUrl = URL.createObjectURL(foundFaviconFile);
                 faviconElement.href = faviconBlobUrl;
-            } catch (r) {
-                console.error("Error creating blob URL for favicon:", r);
-                resetFavicon(); // Ensure it's reset if blob creation fails
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log("Favicon loading aborted.");
+            } else {
+                console.error("Error loading specific favicon:", error);
+            }
+            // Ensure favicon is reset if any error occurs after this point or if foundFaviconFile is null
+            if (faviconBlobUrl && faviconElement.href !== faviconBlobUrl) {
+                 // This means blob was created but not assigned, or some other error.
+                 try { URL.revokeObjectURL(faviconBlobUrl); } catch(e){}
+                 faviconBlobUrl = null;
+            }
+            if (faviconElement.href.startsWith('blob:')) { // If it was set but error occurred later
+                faviconElement.href = '#'; // Reset to default
             }
         }
     }
@@ -1276,66 +1298,73 @@
                 }
                 if (operationSignal.aborted) throw new DOMException('Processing cancelled after .capas files', 'AbortError');
 
-            } else if (allSelectedFiles) { // Legacy Path (using allSelectedFiles)
-                const pathPrefix = rootDirName ? `${rootDirName}/${caminhoName}/` : `${caminhoName}/`;
-                const coverPathPrefix = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`;
-                let filesProcessedCount = 0;
-
-                for (const file of allSelectedFiles) {
-                    let filesProcessedCountLegacy = 0; // Renamed to avoid conflict
-                    for (const file of allSelectedFiles) {
-                        if (operationSignal.aborted) throw new DOMException('Scan Cancelled during file iteration (legacy)', 'AbortError');
-                        filesProcessedCountLegacy++;
-                        if (filesProcessedCountLegacy % 100 === 0 && loadingIndicatorEl && isLoading) {
-                            loadingIndicatorEl.textContent = `Processando arquivos para "${caminhoName}"... (${filesProcessedCountLegacy}/${allSelectedFiles.length})`;
-                            await delay(1, operationSignal);
-                        }
-
-                        const relativePath = file.webkitRelativePath?.replace(/^\.\//, '');
-                        if (!relativePath || !isMediaFile(file.name)) continue;
-
-                        const pathParts = relativePath.split('/');
-                        if (pathParts.length < (rootDirName ? 2 : 1)) continue;
-
-                        const fileName = pathParts[pathParts.length - 1];
-                        const directoryPathFromFile = pathParts.slice(0, -1).join('/') + '/';
-
-                        const pathPrefixLegacy = rootDirName ? `${rootDirName}/${caminhoName}/` : `${caminhoName}/`; // Renamed
-                        const coverPathPrefixLegacy = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`; // Renamed
-
-                        const isCover = directoryPathFromFile === coverPathPrefixLegacy || relativePath.startsWith(coverPathPrefixLegacy);
-                        let isRegular = directoryPathFromFile.startsWith(pathPrefixLegacy);
-                        let isOriginal = false;
-
-                        if (isRegular) {
-                            const relevantPathParts = rootDirName ? pathParts.slice(1) : pathParts;
-                            isOriginal = relevantPathParts.slice(1, -1).some(part => part.toLowerCase() === ORIGINAIS_FOLDER_NAME.toLowerCase());
-                        }
-
-                        if (isCover || isRegular) {
-                            mediaFiles.push({
-                                name: fileName,
-                                fileRef: file,
-                                fileHandle: null,
-                                relativePath: relativePath,
-                                isCoverFile: isCover,
-                                isOriginal: isOriginal,
-                                prefix: getFirstTwoWords(fileName),
-                                blobUrl: null, type: null, loadSuccess: null, abortController: null
-                            });
-                        }
+            } else if (allSelectedFiles && allSelectedFiles.length > 0) { // Legacy Path - corrected
+                let filesProcessedCountLegacy = 0;
+                for (const file of allSelectedFiles) { // Single, correct loop
+                    if (operationSignal.aborted) throw new DOMException('Scan Cancelled during file iteration (legacy)', 'AbortError');
+                    filesProcessedCountLegacy++;
+                    if (filesProcessedCountLegacy % 100 === 0 && loadingIndicatorEl && isLoading) {
+                        loadingIndicatorEl.textContent = `Processando arquivos para "${caminhoName}"... (${filesProcessedCountLegacy}/${allSelectedFiles.length})`;
+                        await delay(1, operationSignal);
                     }
-                } else {
-                     setSpeedDialStatus("Erro: Nenhuma fonte de arquivos (API ou legado) disponível.", true);
-                     throw new Error("No file source available for processAndDisplayFilesForPath");
+
+                    const relativePath = file.webkitRelativePath?.replace(/^\.\//, '');
+                    if (!relativePath || !isMediaFile(file.name)) continue;
+
+                    const pathParts = relativePath.split('/');
+                    if (pathParts.length < (rootDirName ? 2 : 1)) continue;
+
+                    const fileName = pathParts[pathParts.length - 1];
+                    const directoryPathFromFile = pathParts.slice(0, -1).join('/') + '/';
+
+                    const pathPrefixLegacy = rootDirName ? `${rootDirName}/${caminhoName}/` : `${caminhoName}/`;
+                    const coverPathPrefixLegacy = rootDirName ? `${rootDirName}/${CAPAS_FOLDER_NAME}/` : `${CAPAS_FOLDER_NAME}/`;
+
+                    const isCover = directoryPathFromFile === coverPathPrefixLegacy || relativePath.startsWith(coverPathPrefixLegacy);
+                    let isRegular = directoryPathFromFile.startsWith(pathPrefixLegacy);
+                    let isOriginal = false;
+
+                    if (isRegular) {
+                        const relevantPathParts = rootDirName ? pathParts.slice(1) : pathParts;
+                        isOriginal = relevantPathParts.slice(1, -1).some(part => part.toLowerCase() === ORIGINAIS_FOLDER_NAME.toLowerCase());
+                    }
+
+                    if (isCover || isRegular) {
+                        mediaFiles.push({
+                            name: fileName,
+                            fileRef: file,
+                            fileHandle: null,
+                            relativePath: relativePath,
+                            isCoverFile: isCover,
+                            isOriginal: isOriginal,
+                            prefix: getFirstTwoWords(fileName),
+                            blobUrl: null, type: null, loadSuccess: null, abortController: null
+                        });
+                    }
                 }
+            } else { // Final else for when no file source is available
+                 setSpeedDialStatus("Erro: Nenhuma fonte de arquivos (API ou legado) disponível.", true);
+                 endOperation(false); // Ensure UI is reset
+                 throw new Error("No file source available for processAndDisplayFilesForPath");
+            }
 
-                if (operationSignal.aborted) throw new DOMException('Processing Operation Cancelled after file iteration', 'AbortError');
-                if (loadingIndicatorEl) loadingIndicatorEl.textContent = `Analisando ${mediaFiles.length} itens coletados...`;
+            if (operationSignal.aborted) throw new DOMException('Processing Operation Cancelled after file iteration', 'AbortError');
 
-                if (mediaFiles.length > 0) {
-                    if (loadingIndicatorEl) loadingIndicatorEl.textContent = `Indexando ${mediaFiles.length} itens...`;
-                buildMediaIndex(operationSignal);
+            if (loadingIndicatorEl && mediaFiles.length > 0) loadingIndicatorEl.textContent = `Analisando ${mediaFiles.length} itens coletados...`;
+
+            if (mediaFiles.length > 0) {
+                try {
+                    if (loadingIndicatorEl) loadingIndicatorEl.textContent = `Indexando ${mediaFiles.length} itens (Worker)...`;
+                    await buildMediaIndex(operationSignal); // This is the worker-based async call
+                } catch (indexError) {
+                    if (indexError.name === 'AbortError') {
+                        throw indexError; // Re-throw abort error
+                    }
+                    console.warn("Worker-based buildMediaIndex failed, falling back to synchronous:", indexError);
+                    if (loadingIndicatorEl) loadingIndicatorEl.textContent = `Indexando ${mediaFiles.length} itens (Síncrono)...`;
+                    // Ensure buildMediaIndexSynchronous is defined and works as expected
+                    buildMediaIndexSynchronous(operationSignal);
+                }
                 if (operationSignal.aborted) throw new DOMException('Indexing Cancelled', 'AbortError');
 
                 const regularMediaFiles = mediaFiles.filter(i => !i.isCoverFile);
@@ -1651,9 +1680,9 @@
 
             renderSpeedDialItems();
             loadSpeedDialConfig(); // Ensure this is called
-            activateLuckyFeature(); // Placeholder, might need adjustment later
+            // activateLuckyFeature(); // Placeholder, might need adjustment later
             await loadSpecificIcons(operationSignal);
-            await loadSpecificFavicon(operationSignal);
+            await loadSpecificFavicon(operationSignal); // Ensure this is awaited
             activateLuckyFeature(); // This will internally await getLuckyCoverCandidates
 
             hideCaminhoSidebar();
@@ -1680,7 +1709,7 @@
         }
     }
 
-    async function handleFolderSelectionLegacy(e){if(isLoading)return;const f=e.target.files,i=e.target;if(!f||f.length===0){setSpeedDialStatus("Nenhuma pasta selecionada ou seleção cancelada.",!1);allSelectedFiles=null;rootDirName='';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='inline-block';if(speedDialOptionsEl)speedDialOptionsEl.style.display='none';resetSpeedDialIcons();resetFavicon();resetLuckyFeature();document.body.classList.add('initial-load');if(controlsContainerEl) controlsContainerEl.style.display = 'none';i.value=null;hideCaminhoSidebar(); updateMainHeader('Random Media'); return}let r="Seleção",p=!0;if(f[0]?.webkitRelativePath){const F=f[0].webkitRelativePath.replace(/^\.\//,''),s=F.split('/')[0];if(s){r=s;for(let t=1;t<f.length;t++){const l=f[t].webkitRelativePath?.replace(/^\.\//,'');if(!l||!l.startsWith(r+'/')){p=!1;r="Seleção";console.warn("Inconsistent paths detected. Not a single root folder selection.");break}}}}else{p=!1}allSelectedFiles=f;rootDirName=r;initialViewHistory=[];sessionViewedPrefixes.clear();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();cleanupUIState();resetSpeedDialIcons();resetFavicon();/* resetLuckyFeature() is called within activateLuckyFeature */; updateMainHeader('Random Media'); if(controlsContainerEl)controlsContainerEl.style.display='none';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='none';if(document.getElementById('speed-dial-subtitle'))document.getElementById('speed-dial-subtitle').style.display='none';if(speedDialOptionsEl)speedDialOptionsEl.style.display='grid';setSpeedDialStatus(`Pasta "${rootDirName}" carregada (${f.length} arquivos). Carregando recursos...`);document.body.classList.add('initial-load');if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t=>{t.style.pointerEvents='auto';t.removeAttribute('aria-disabled')})}i.value=null;renderSpeedDialItems();await loadSpecificIcons(allSelectedFiles);await loadSpecificFavicon(allSelectedFiles);activateLuckyFeature();hideCaminhoSidebar();}
+    async function handleFolderSelectionLegacy(e){if(isLoading)return;const f=e.target.files,i=e.target;if(!f||f.length===0){setSpeedDialStatus("Nenhuma pasta selecionada ou seleção cancelada.",!1);allSelectedFiles=null;rootDirName='';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='inline-block';if(speedDialOptionsEl)speedDialOptionsEl.style.display='none';resetSpeedDialIcons();resetFavicon();resetLuckyFeature();document.body.classList.add('initial-load');if(controlsContainerEl) controlsContainerEl.style.display = 'none';i.value=null;hideCaminhoSidebar(); updateMainHeader('Random Media'); return}let r="Seleção",p=!0;if(f[0]?.webkitRelativePath){const F=f[0].webkitRelativePath.replace(/^\.\//,''),s=F.split('/')[0];if(s){r=s;for(let t=1;t<f.length;t++){const l=f[t].webkitRelativePath?.replace(/^\.\//,'');if(!l||!l.startsWith(r+'/')){p=!1;r="Seleção";console.warn("Inconsistent paths detected. Not a single root folder selection.");break}}}}else{p=!1}allSelectedFiles=f;rootDirName=r;initialViewHistory=[];sessionViewedPrefixes.clear();mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();cleanupUIState();resetSpeedDialIcons();resetFavicon();/* resetLuckyFeature() is called within activateLuckyFeature */; updateMainHeader('Random Media'); if(controlsContainerEl)controlsContainerEl.style.display='none';if(selectNucleoButtonEl)selectNucleoButtonEl.style.display='none';if(document.getElementById('speed-dial-subtitle'))document.getElementById('speed-dial-subtitle').style.display='none';if(speedDialOptionsEl)speedDialOptionsEl.style.display='grid';setSpeedDialStatus(`Pasta "${rootDirName}" carregada (${f.length} arquivos). Carregando recursos...`);document.body.classList.add('initial-load');if(speedDialOptionsEl){speedDialOptionsEl.querySelectorAll('.speed-dial-item').forEach(t=>{t.style.pointerEvents='auto';t.removeAttribute('aria-disabled')})}i.value=null;renderSpeedDialItems();await loadSpecificIcons(allSelectedFiles);await loadSpecificFavicon(allSelectedFiles);/* activateLuckyFeature() is called after icons/favicon */;activateLuckyFeature();hideCaminhoSidebar();}
     async function handleReturnToSpeedDialClick(){if(isLoading)return;const s=beginOperation();try{
         updateMainHeader('Random Media'); // Reset header
         cleanupUIState();if(mediaContainerEl)mediaContainerEl.style.display='none';if(controlsContainerEl)controlsContainerEl.style.display='none';if(speedDialContainerEl)speedDialContainerEl.style.display='flex';document.body.classList.add('initial-load');setSpeedDialStatus("Selecione um Caminho ou carregue uma nova pasta 'Nucleo'.",!1);mediaFiles.forEach(revokeItemResources);mediaFiles=[];mediaIndex.clear();initialViewHistory=[];sessionViewedPrefixes.clear();hideCaminhoSidebar();endOperation(!0);activateLuckyFeature();}catch(e){if(e.name!=='AbortError'){console.error("Error returning to speed dial:",e);setSpeedDialStatus("Erro ao retornar ao início. Verifique o console.",!0)}endOperation(!1); return;}
