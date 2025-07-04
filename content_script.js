@@ -38,6 +38,7 @@
         galleryNext: 'cg-gallery-next',
         galleryClose: 'cg-gallery-close',
         galleryDownload: 'cg-gallery-download',
+        galleryDownloadAll: 'cg-gallery-download-all', // New CSS class
         topicPreviewContainer: 'topic-preview-container',
         topicPreviewThumbnail: 'topic-preview-thumbnail',
         topicPreviewPlaceholder: 'topic-preview-placeholder',
@@ -51,6 +52,7 @@
         galleryLoadingHQ: 'Preparing images...',
         galleryNoImages: 'No images found in the initial post.',
         galleryDownloadButtonTitle: 'Download current image (Shortcut: S)',
+        galleryDownloadAllButtonTitle: 'Download all images (original quality)',
         galleryDownloadOk: 'Downloading...',
         galleryDownloadErr: 'Download Error!',
         galleryDownloadWarn: 'Nothing to download!',
@@ -66,6 +68,7 @@
         arrowNext: '›',
         closeButton: '×',
         downloadButton: '⬇',
+        downloadAllButton: '⬇⬇', // Placeholder, consider a better icon or SVG
         galleryImageAlt: "Gallery Image",
         thumbnailAlt: 'Topic Preview',
         placeholderSymbolLoading: '⏳'
@@ -78,7 +81,7 @@
     let isPreviewQueueProcessing = false;
     let processQueueTimeoutId = null;
     let mutationObserver = null;
-    let galleryOverlay = null, galleryImage = null, galleryPrevBtn = null, galleryNextBtn = null, galleryCloseBtn = null, galleryStatus = null, galleryDownloadBtn = null;
+    let galleryOverlay = null, galleryImage = null, galleryPrevBtn = null, galleryNextBtn = null, galleryCloseBtn = null, galleryStatus = null, galleryDownloadBtn = null, galleryDownloadAllBtn = null;
 
     const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
     function getTopicIdFromUrl(url) { const match = url?.match(/\/t\/(?:[^\/]+\/)?(\d+)(?:[\/?#]|$)/); return (match && match[1]) ? `t${match[1]}` : null; }
@@ -89,7 +92,7 @@
     function injectStyles() {
         const styleId = 'cg-gallery-dynamic-styles';
         if (document.getElementById(styleId)) return;
-        const galleryButtonSize = 50; const galleryNavFontSize = 28; const galleryActionFontSize = 24; const galleryDownloadBtnRightPos = galleryButtonSize + 25;
+        const galleryButtonSize = 50; const galleryNavFontSize = 28; const galleryActionFontSize = 24; const galleryDownloadBtnRightPos = galleryButtonSize + 25; const galleryDownloadAllBtnRightPos = galleryDownloadBtnRightPos + galleryButtonSize + 15; // Position for the new button
         const css = `
             ${SELECTORS.topicCell} { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: flex-start; padding: 20px 10px 15px 10px !important; }
             ${SELECTORS.otherCells} { vertical-align: middle !important; }
@@ -112,13 +115,14 @@
             .${CSS_CLASSES.galleryImage} { max-width: calc(100% - ${galleryButtonSize * 2 + 40}px); max-height: calc(100% - ${galleryButtonSize + 40}px); display: block; object-fit: contain; margin: auto; opacity: 0; transition: opacity ${IMAGE_LOAD_TRANSITION_MS}ms linear; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); background-color: rgba(30,30,30,0.5); }
             .${CSS_CLASSES.galleryStatus} { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #ccc; font-size: 0.9em; text-align: center; margin: 0; padding: 5px 12px; background: rgba(0, 0, 0, 0.6); border-radius: 12px; min-width: 80px; max-width: 80%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.2s ease; z-index: 10001; opacity: 1; }
             .${CSS_CLASSES.galleryStatus}:empty { opacity: 0; }
-            .${CSS_CLASSES.galleryPrev}, .${CSS_CLASSES.galleryNext}, .${CSS_CLASSES.galleryClose}, .${CSS_CLASSES.galleryDownload} { position: absolute; background: rgba(40, 40, 40, 0.7); color: rgba(255, 255, 255, 0.9); border: none; cursor: pointer; border-radius: 50%; width: ${galleryButtonSize}px; height: ${galleryButtonSize}px; display: flex; align-items: center; justify-content: center; z-index: 10001; transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease; opacity: 0.7; line-height: 1; user-select: none; }
-            .${CSS_CLASSES.galleryPrev}:hover, .${CSS_CLASSES.galleryNext}:hover, .${CSS_CLASSES.galleryClose}:hover, .${CSS_CLASSES.galleryDownload}:hover { background: rgba(20, 20, 20, 0.9); opacity: 1; }
-            .${CSS_CLASSES.galleryPrev}:active, .${CSS_CLASSES.galleryNext}:active, .${CSS_CLASSES.galleryClose}:active, .${CSS_CLASSES.galleryDownload}:active { transform: scale(0.92); transition-duration: 0.05s; }
+            .${CSS_CLASSES.galleryPrev}, .${CSS_CLASSES.galleryNext}, .${CSS_CLASSES.galleryClose}, .${CSS_CLASSES.galleryDownload}, .${CSS_CLASSES.galleryDownloadAll} { position: absolute; background: rgba(40, 40, 40, 0.7); color: rgba(255, 255, 255, 0.9); border: none; cursor: pointer; border-radius: 50%; width: ${galleryButtonSize}px; height: ${galleryButtonSize}px; display: flex; align-items: center; justify-content: center; z-index: 10001; transition: background-color 0.2s ease, opacity 0.2s ease, transform 0.1s ease; opacity: 0.7; line-height: 1; user-select: none; }
+            .${CSS_CLASSES.galleryPrev}:hover, .${CSS_CLASSES.galleryNext}:hover, .${CSS_CLASSES.galleryClose}:hover, .${CSS_CLASSES.galleryDownload}:hover, .${CSS_CLASSES.galleryDownloadAll}:hover { background: rgba(20, 20, 20, 0.9); opacity: 1; }
+            .${CSS_CLASSES.galleryPrev}:active, .${CSS_CLASSES.galleryNext}:active, .${CSS_CLASSES.galleryClose}:active, .${CSS_CLASSES.galleryDownload}:active, .${CSS_CLASSES.galleryDownloadAll}:active { transform: scale(0.92); transition-duration: 0.05s; }
             .${CSS_CLASSES.galleryPrev} { left: 20px; top: 50%; transform: translateY(-50%); font-size: ${galleryNavFontSize}px; padding-right: 3px; }
             .${CSS_CLASSES.galleryNext} { right: 20px; top: 50%; transform: translateY(-50%); font-size: ${galleryNavFontSize}px; padding-left: 3px; }
             .${CSS_CLASSES.galleryClose} { top: 15px; right: 15px; font-size: ${galleryActionFontSize}px; }
             .${CSS_CLASSES.galleryDownload} { top: 15px; right: ${galleryDownloadBtnRightPos}px; font-size: ${galleryActionFontSize - 2}px; font-weight: normal; }
+            .${CSS_CLASSES.galleryDownloadAll} { top: 15px; right: ${galleryDownloadAllBtnRightPos}px; font-size: ${galleryActionFontSize - 4}px; font-weight: normal; } /* Adjusted font size slightly for "⬇⬇" */
             .${CSS_CLASSES.galleryOverlay}[data-single-image="true"] .${CSS_CLASSES.galleryPrev},
             .${CSS_CLASSES.galleryOverlay}[data-single-image="true"] .${CSS_CLASSES.galleryNext} { display: none; }
         `;
@@ -137,13 +141,14 @@
             galleryNextBtn = galleryOverlay.querySelector(`.${CSS_CLASSES.galleryNext}`);
             galleryCloseBtn = galleryOverlay.querySelector(`.${CSS_CLASSES.galleryClose}`);
             galleryDownloadBtn = galleryOverlay.querySelector(`.${CSS_CLASSES.galleryDownload}`);
-            const coreElements = [galleryStatus, galleryPrevBtn, galleryImage, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn];
+            galleryDownloadAllBtn = galleryOverlay.querySelector(`.${CSS_CLASSES.galleryDownloadAll}`); // Added this line
+            const coreElements = [galleryStatus, galleryPrevBtn, galleryImage, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn, galleryDownloadAllBtn]; // Added galleryDownloadAllBtn
             if (coreElements.some(el => !el)) {
                 logWarn('CreateGalleryDOM', 'Gallery overlay exists but core components missing. Forcing re-creation.');
                 if (galleryOverlay.parentNode) galleryOverlay.parentNode.removeChild(galleryOverlay);
                 galleryOverlay = null; // Will trigger creation block below
             } else {
-                const buttons = [galleryPrevBtn, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn];
+                const buttons = [galleryPrevBtn, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn, galleryDownloadAllBtn]; // Added galleryDownloadAllBtn
                 if (buttons.some(btn => btn && !btn.getAttribute('data-listener-added'))) {
                     needsListenerUpdate = true;
                 }
@@ -159,18 +164,19 @@
                 galleryNextBtn = document.createElement('button'); galleryNextBtn.className = CSS_CLASSES.galleryNext; galleryNextBtn.innerHTML = UI_TEXTS.arrowNext; galleryNextBtn.setAttribute('aria-label', 'Next Image');
                 galleryCloseBtn = document.createElement('button'); galleryCloseBtn.className = CSS_CLASSES.galleryClose; galleryCloseBtn.innerHTML = UI_TEXTS.closeButton; galleryCloseBtn.setAttribute('aria-label', 'Close Gallery');
                 galleryDownloadBtn = document.createElement('button'); galleryDownloadBtn.className = CSS_CLASSES.galleryDownload; galleryDownloadBtn.title = UI_TEXTS.galleryDownloadButtonTitle; galleryDownloadBtn.innerHTML = UI_TEXTS.downloadButton; galleryDownloadBtn.setAttribute('aria-label', 'Download Image (Shortcut: S)');
-                galleryOverlay.append(galleryStatus, galleryPrevBtn, galleryImage, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn);
+                galleryDownloadAllBtn = document.createElement('button'); galleryDownloadAllBtn.className = CSS_CLASSES.galleryDownloadAll; galleryDownloadAllBtn.title = UI_TEXTS.galleryDownloadAllButtonTitle; galleryDownloadAllBtn.innerHTML = UI_TEXTS.downloadAllButton; galleryDownloadAllBtn.setAttribute('aria-label', 'Download All Images'); // Added this block
+                galleryOverlay.append(galleryStatus, galleryPrevBtn, galleryImage, galleryNextBtn, galleryCloseBtn, galleryDownloadBtn, galleryDownloadAllBtn); // Added galleryDownloadAllBtn
                 if (document.body) {
                     document.body.appendChild(galleryOverlay);
                     needsListenerUpdate = true;
                     logInfo('CreateGalleryDOM', 'Gallery created and appended to DOM.');
                 } else {
                     logError('CreateGalleryDOM', 'document.body not found for gallery append.');
-                    galleryOverlay = galleryImage = galleryStatus = galleryPrevBtn = galleryNextBtn = galleryCloseBtn = galleryDownloadBtn = null;
+                    galleryOverlay = galleryImage = galleryStatus = galleryPrevBtn = galleryNextBtn = galleryCloseBtn = galleryDownloadBtn = galleryDownloadAllBtn = null; // Added galleryDownloadAllBtn
                 }
             } catch (error) {
                 logError('CreateGalleryDOM', 'Error during gallery element creation:', error);
-                galleryOverlay = galleryImage = galleryStatus = galleryPrevBtn = galleryNextBtn = galleryCloseBtn = galleryDownloadBtn = null;
+                galleryOverlay = galleryImage = galleryStatus = galleryPrevBtn = galleryNextBtn = galleryCloseBtn = galleryDownloadBtn = galleryDownloadAllBtn = null; // Added galleryDownloadAllBtn
             }
         }
         if (needsListenerUpdate && galleryOverlay) { addGalleryEventListeners(); }
@@ -192,10 +198,76 @@
         addListener(galleryPrevBtn, 'click', showPrevImage, 'Prev');
         addListener(galleryNextBtn, 'click', showNextImage, 'Next');
         addListener(galleryDownloadBtn, 'click', downloadCurrentImage, 'Download');
+        addListener(galleryDownloadAllBtn, 'click', downloadAllImages, 'DownloadAll'); // Added this line
     }
 
     async function getStoredThumbnail(topicIdKey) { if (typeof browser === "undefined" || !browser.storage?.local) return null; try { const d = await browser.storage.local.get(PERSISTENT_THUMB_CACHE_KEY), c = d?.[PERSISTENT_THUMB_CACHE_KEY] || {}, e = c[topicIdKey]; if (e?.url && (Date.now() - e.timestamp) < CACHE_DURATION_MS) return e.url; if (e) { delete c[topicIdKey]; browser.storage.local.set({ [PERSISTENT_THUMB_CACHE_KEY]: c }).catch(err => logError('Cache Cleanup', err)); } } catch (err) { logError('Cache Read', topicIdKey, err); } return null; }
     async function setStoredThumbnail(topicIdKey, imageUrl) { if (!topicIdKey || !imageUrl || typeof browser === "undefined" || !browser.storage?.local) return; try { const d = await browser.storage.local.get(PERSISTENT_THUMB_CACHE_KEY), c = d?.[PERSISTENT_THUMB_CACHE_KEY] || {}; c[topicIdKey] = { url: imageUrl, timestamp: Date.now() }; await browser.storage.local.set({ [PERSISTENT_THUMB_CACHE_KEY]: c }); } catch (err) { logError('Cache Write', topicIdKey, err); } }
+
+    async function downloadAllImages(event) {
+        if (event) event.stopPropagation();
+        if (!galleryOverlay || !galleryStatus) { logError('DownloadAll', 'Gallery elements missing.'); return; }
+
+        const { images, topicTitle, opUsername } = activeGallery;
+        if (!images || images.length === 0) {
+            logWarn('DownloadAll', 'No images to download.');
+            const originalStatus = galleryStatus.textContent;
+            galleryStatus.textContent = UI_TEXTS.galleryDownloadWarn;
+            setTimeout(() => { if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadWarn) galleryStatus.textContent = originalStatus; }, 2000);
+            return;
+        }
+
+        const originalStatus = galleryStatus.textContent;
+        let downloadedCount = 0;
+        let errorCount = 0;
+
+        for (let i = 0; i < images.length; i++) {
+            const imageUrl = images[i];
+            galleryStatus.textContent = `Baixando ${i + 1} de ${images.length}...`;
+            try {
+                const imgOriginalUrl = getOriginalImageUrl(imageUrl); // Ensure original quality
+                let baseFileName = `${opUsername || 'User'} - ${topicTitle || 'Topic'}-Img_${(i + 1).toString().padStart(2, '0')}`;
+                baseFileName = baseFileName.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().substring(0, 150).replace(/\.+$/, '').replace(/\.{2,}/g, '.');
+                let extension = '.jpg';
+                try {
+                    const pathname = new URL(imgOriginalUrl).pathname;
+                    const match = pathname.match(/\.(jpe?g|png|gif|webp|bmp)$/i);
+                    if (match?.[1]) extension = '.' + match[1].toLowerCase();
+                } catch (e) { /* ignore url parsing error for extension */ }
+                const finalFileName = (baseFileName || `Image_${(i + 1).toString().padStart(2, '0')}`) + extension;
+
+                const response = await fetch(imgOriginalUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status} for ${imgOriginalUrl}`);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = finalFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+                downloadedCount++;
+                await delay(200); // Small delay between downloads
+            } catch (err) {
+                logError('DownloadAll Loop', `Failed to download ${imageUrl}`, err);
+                errorCount++;
+            }
+            if (!galleryOverlay?.classList.contains(CSS_CLASSES.galleryVisible)) {
+                logInfo('DownloadAll', 'Gallery closed during download. Aborting.');
+                galleryStatus.textContent = 'Download cancelado.';
+                setTimeout(() => { if (galleryStatus?.textContent === 'Download cancelado.') galleryStatus.textContent = originalStatus; }, 3000);
+                return;
+            }
+        }
+
+        if (errorCount > 0) {
+            galleryStatus.textContent = `Concluído: ${downloadedCount} baixadas, ${errorCount} falhas.`;
+        } else {
+            galleryStatus.textContent = `Todas as ${downloadedCount} imagens baixadas!`;
+        }
+        setTimeout(() => { if (galleryStatus) galleryStatus.textContent = originalStatus; }, 5000);
+    }
 
     function showGallery() {
         createGalleryDOM();
