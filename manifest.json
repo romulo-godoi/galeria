@@ -1,0 +1,36 @@
+{
+  "manifest_version": 2,
+  "name": "Forum CandidGirls Image Gallery Preview",
+  "version": "2.6",
+  "description": "Adds preview thumbnails (cached) and image gallery (preloaded) to CandidGirls forum topics. Uses dynamic CSS injection and robust SPA handling.",
+  "author": "Promero",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://forum.candidgirls.io/latest*",
+        "https://forum.candidgirls.io/top*",
+        "https://forum.candidgirls.io/new*",
+        "https://forum.candidgirls.io/unseen*",
+        "https://forum.candidgirls.io/unread*",
+        "https://forum.candidgirls.io/c/*",
+        "https://forum.candidgirls.io/search*"
+      ],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "https://forum.candidgirls.io/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{c99e810f-a6b3-4250-9832-14ee5c2bc1f8}",
+      "strict_min_version": "91.0"
+    }
+  }
+}
