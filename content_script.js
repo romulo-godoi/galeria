@@ -206,14 +206,19 @@
 
     async function downloadAllImages(event) {
         if (event) event.stopPropagation();
-        if (!galleryOverlay || !galleryStatus) { logError('DownloadAll', 'Gallery elements missing.'); return; }
+        if (!galleryOverlay || !galleryStatus) {
+            logError('DownloadAll', 'Gallery elements missing.');
+            return;
+        }
 
-        const { images, topicTitle, opUsername } = activeGallery;
+        const { images, topicTitle, opUsername, tags } = activeGallery;
         if (!images || images.length === 0) {
             logWarn('DownloadAll', 'No images to download.');
             const originalStatus = galleryStatus.textContent;
             galleryStatus.textContent = UI_TEXTS.galleryDownloadWarn;
-            setTimeout(() => { if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadWarn) galleryStatus.textContent = originalStatus; }, 2000);
+            setTimeout(() => {
+                if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadWarn) galleryStatus.textContent = originalStatus;
+            }, 2000);
             return;
         }
 
@@ -226,7 +231,12 @@
             galleryStatus.textContent = `Baixando ${i + 1} de ${images.length}...`;
             try {
                 const imgOriginalUrl = getOriginalImageUrl(imageUrl); // Ensure original quality
-                let baseFileName = `${opUsername || 'User'} - ${topicTitle || 'Topic'}-Img_${(i + 1).toString().padStart(2, '0')}`;
+                let baseFileName = `${opUsername || 'User'} - ${topicTitle || 'Topic'}`;
+                if (tags) {
+                    baseFileName += ` (${tags})`;
+                }
+                baseFileName += `-Img_${(i + 1).toString().padStart(2, '0')}`;
+
                 baseFileName = baseFileName.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().substring(0, 150).replace(/\.+$/, '').replace(/\.{2,}/g, '.');
                 let extension = '.jpg';
                 try {
@@ -256,7 +266,9 @@
             if (!galleryOverlay?.classList.contains(CSS_CLASSES.galleryVisible)) {
                 logInfo('DownloadAll', 'Gallery closed during download. Aborting.');
                 galleryStatus.textContent = 'Download cancelado.';
-                setTimeout(() => { if (galleryStatus?.textContent === 'Download cancelado.') galleryStatus.textContent = originalStatus; }, 3000);
+                setTimeout(() => {
+                    if (galleryStatus?.textContent === 'Download cancelado.') galleryStatus.textContent = originalStatus;
+                }, 3000);
                 return;
             }
         }
@@ -266,7 +278,9 @@
         } else {
             galleryStatus.textContent = `Todas as ${downloadedCount} imagens baixadas!`;
         }
-        setTimeout(() => { if (galleryStatus) galleryStatus.textContent = originalStatus; }, 5000);
+        setTimeout(() => {
+            if (galleryStatus) galleryStatus.textContent = originalStatus;
+        }, 5000);
     }
 
     function showGallery() {
@@ -328,15 +342,75 @@
 
     function downloadCurrentImage(event) {
         if (event) event.stopPropagation();
-        if (!galleryImage || !galleryStatus || !galleryOverlay) { logError('Download', 'Gallery elements missing.'); return; }
-        const imgUrl = galleryImage.src; if (!imgUrl || imgUrl.startsWith('data:') || imgUrl.startsWith('blob:')) { logWarn('Download', 'Invalid URL:', imgUrl); const oS = galleryStatus.textContent; galleryStatus.textContent = UI_TEXTS.galleryDownloadWarn; setTimeout(() => { if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadWarn) galleryStatus.textContent = oS; }, 2000); return; }
-        const tT = activeGallery.topicTitle||'T', opU = activeGallery.opUsername||'U', idx = activeGallery.currentIndex, iN = (idx >= 0 ? idx + 1:1).toString().padStart(2,'0');
+        if (!galleryImage || !galleryStatus || !galleryOverlay) {
+            logError('Download', 'Gallery elements missing.');
+            return;
+        }
+        const imgUrl = galleryImage.src;
+        if (!imgUrl || imgUrl.startsWith('data:') || imgUrl.startsWith('blob:')) {
+            logWarn('Download', 'Invalid URL:', imgUrl);
+            const oS = galleryStatus.textContent;
+            galleryStatus.textContent = UI_TEXTS.galleryDownloadWarn;
+            setTimeout(() => {
+                if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadWarn) galleryStatus.textContent = oS;
+            }, 2000);
+            return;
+        }
+
+        const { topicTitle: tT = 'T', opUsername: opU = 'U', tags, currentIndex: idx } = activeGallery;
+        const iN = (idx >= 0 ? idx + 1 : 1).toString().padStart(2, '0');
+
         try {
-            let bFn = `${opU} - ${tT}-Img_${iN}`.replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,' ').trim().substring(0,150).replace(/\.+$/,'').replace(/\.{2,}/g,'.'); let ext = '.jpg';
-            try { const pN = new URL(imgUrl).pathname; const m = pN.match(/\.(jpe?g|png|gif|webp|bmp)$/i); if (m?.[1]) ext = '.' + m[1].toLowerCase(); } catch(e) {/*ignore*/}
-            let fFn = (bFn||`Image_${iN}`) + ext; const oS = galleryStatus.textContent; galleryStatus.textContent = UI_TEXTS.galleryDownloadOk;
-            fetch(imgUrl).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); }).then(b => { const bU = window.URL.createObjectURL(b); const l = document.createElement('a'); l.href = bU; l.download = fFn; document.body.appendChild(l); l.click(); document.body.removeChild(l); window.URL.revokeObjectURL(bU); setTimeout(() => { if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadOk) galleryStatus.textContent = oS;}, 1500); }).catch(err => { logError('Download Fetch/Blob', imgUrl, err); if(galleryStatus) galleryStatus.textContent = UI_TEXTS.galleryDownloadErr; setTimeout(() => { if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadErr) galleryStatus.textContent = (activeGallery.images.length>0 && activeGallery.currentIndex>=0) ? `${activeGallery.currentIndex+1}/${activeGallery.images.length}` : oS; }, 3000);});
-        } catch (err) { logError('Download Prep',err); if(galleryStatus) galleryStatus.textContent = 'Prep Error!'; setTimeout(() => { if (galleryStatus?.textContent === 'Prep Error!') galleryStatus.textContent = (activeGallery.images.length>0&&activeGallery.currentIndex>=0)?`${activeGallery.currentIndex+1}/${activeGallery.images.length}`:'';}, 2000);}
+            let baseFileName = `${opU} - ${tT}`;
+            if (tags) {
+                baseFileName += ` (${tags})`;
+            }
+            baseFileName += `-Img_${iN}`;
+
+            let bFn = baseFileName.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim().substring(0, 150).replace(/\.+$/, '').replace(/\.{2,}/g, '.');
+            let ext = '.jpg';
+            try {
+                const pN = new URL(imgUrl).pathname;
+                const m = pN.match(/\.(jpe?g|png|gif|webp|bmp)$/i);
+                if (m?.[1]) ext = '.' + m[1].toLowerCase();
+            } catch (e) { /*ignore*/ }
+
+            let fFn = (bFn || `Image_${iN}`) + ext;
+            const oS = galleryStatus.textContent;
+            galleryStatus.textContent = UI_TEXTS.galleryDownloadOk;
+
+            fetch(imgUrl)
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.blob();
+                })
+                .then(b => {
+                    const bU = window.URL.createObjectURL(b);
+                    const l = document.createElement('a');
+                    l.href = bU;
+                    l.download = fFn;
+                    document.body.appendChild(l);
+                    l.click();
+                    document.body.removeChild(l);
+                    window.URL.revokeObjectURL(bU);
+                    setTimeout(() => {
+                        if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadOk) galleryStatus.textContent = oS;
+                    }, 1500);
+                })
+                .catch(err => {
+                    logError('Download Fetch/Blob', imgUrl, err);
+                    if (galleryStatus) galleryStatus.textContent = UI_TEXTS.galleryDownloadErr;
+                    setTimeout(() => {
+                        if (galleryStatus?.textContent === UI_TEXTS.galleryDownloadErr) galleryStatus.textContent = (activeGallery.images.length > 0 && activeGallery.currentIndex >= 0) ? `${activeGallery.currentIndex + 1}/${activeGallery.images.length}` : oS;
+                    }, 3000);
+                });
+        } catch (err) {
+            logError('Download Prep', err);
+            if (galleryStatus) galleryStatus.textContent = 'Prep Error!';
+            setTimeout(() => {
+                if (galleryStatus?.textContent === 'Prep Error!') galleryStatus.textContent = (activeGallery.images.length > 0 && activeGallery.currentIndex >= 0) ? `${activeGallery.currentIndex + 1}/${activeGallery.images.length}` : '';
+            }, 2000);
+        }
     }
 
     async function fetchTopicImagesForPreview(topicIdKey, topicUrl) {
@@ -350,29 +424,123 @@
 
     function extractImagesFromCookedHtml(htmlContent) { if (!htmlContent || typeof htmlContent !== 'string') return []; try { const p = new DOMParser(), d = p.parseFromString(htmlContent,'text/html'); let iEls = Array.from(d.querySelectorAll(SELECTORS.galleryImageLink)); if (iEls.length === 0) iEls = Array.from(d.querySelectorAll(SELECTORS.galleryImageFallback)); return iEls.map(img => img?.src).filter(s => s && !s.includes('/emoji/') && !s.includes('/images/transparent.png') && !/\/user_avatar\//.test(s) && !/\/avatar\//.test(s) && !s.startsWith('data:') && !s.startsWith('blob:'));} catch(e){ logError('Parse Cooked HTML',e); return [];}}
 
-    async function openGalleryForTopic(event, topicIdKey, topicUrl, topicTitle='Topic', opUsername='User') {
-        if (event) { event.preventDefault(); event.stopPropagation(); } if (!topicIdKey || !topicUrl) { logWarn('OpenGallery', 'Missing ID/URL.'); return; }
-        if (activeGallery.topicId === topicIdKey && galleryOverlay?.classList.contains(CSS_CLASSES.galleryVisible)) { showGallery(); return; }
+    async function openGalleryForTopic(event, topicIdKey, topicUrl, topicTitle = 'Topic', opUsername = 'User', tags = '') {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (!topicIdKey || !topicUrl) {
+            logWarn('OpenGallery', 'Missing ID/URL.');
+            return;
+        }
+        if (activeGallery.topicId === topicIdKey && galleryOverlay?.classList.contains(CSS_CLASSES.galleryVisible)) {
+            showGallery();
+            return;
+        }
+
         logInfo('OpenGallery', `Opening for ${topicIdKey}`);
-        activeGallery = { topicId: topicIdKey, images: [], currentIndex: -1, topicTitle: topicTitle||'Topic', opUsername: opUsername||'User' };
+        activeGallery = {
+            topicId: topicIdKey,
+            images: [],
+            currentIndex: -1,
+            topicTitle: topicTitle || 'Topic',
+            opUsername: opUsername || 'User',
+            tags: tags || ''
+        };
+
         showGallery();
-        if (!galleryOverlay || !galleryImage || !galleryStatus) { logError('OpenGallery', 'Elements unavailable post showGallery().'); hideGallery(); return; }
-        galleryImage.src = ''; galleryImage.style.opacity = '0'; galleryStatus.textContent = UI_TEXTS.galleryLoading; galleryOverlay.dataset.singleImage = 'true';
+        if (!galleryOverlay || !galleryImage || !galleryStatus) {
+            logError('OpenGallery', 'Elements unavailable post showGallery().');
+            hideGallery();
+            return;
+        }
+
+        galleryImage.src = '';
+        galleryImage.style.opacity = '0';
+        galleryStatus.textContent = UI_TEXTS.galleryLoading;
+        galleryOverlay.dataset.singleImage = 'true';
+
         let imgUrls = topicImageCache[topicIdKey];
-        if (imgUrls === undefined) { galleryStatus.textContent = UI_TEXTS.galleryLoadingFetch; await fetchTopicImagesForPreview(topicIdKey, topicUrl); imgUrls = topicImageCache[topicIdKey]; }
-        if (!galleryOverlay || !galleryStatus) { logError('OpenGallery [State Check]', 'Gallery status element gone before image processing.'); hideGallery(); return; } // Re-check after await
-        if (imgUrls?.length > 0) { galleryStatus.textContent = UI_TEXTS.galleryLoadingHQ; activeGallery.images = imgUrls.map(url => getOriginalImageUrl(url)); activeGallery.currentIndex = 0; updateGalleryImage(); }
-        else { galleryStatus.textContent = UI_TEXTS.galleryNoImages; galleryOverlay.dataset.singleImage = 'true'; if(galleryPrevBtn) galleryPrevBtn.style.display = 'none'; if(galleryNextBtn) galleryNextBtn.style.display = 'none'; }
+        if (imgUrls === undefined) {
+            galleryStatus.textContent = UI_TEXTS.galleryLoadingFetch;
+            await fetchTopicImagesForPreview(topicIdKey, topicUrl);
+            imgUrls = topicImageCache[topicIdKey];
+        }
+
+        if (!galleryOverlay || !galleryStatus) {
+            logError('OpenGallery [State Check]', 'Gallery status element gone before image processing.');
+            hideGallery();
+            return;
+        }
+
+        if (imgUrls?.length > 0) {
+            galleryStatus.textContent = UI_TEXTS.galleryLoadingHQ;
+            activeGallery.images = imgUrls.map(url => getOriginalImageUrl(url));
+            activeGallery.currentIndex = 0;
+            updateGalleryImage();
+        } else {
+            galleryStatus.textContent = UI_TEXTS.galleryNoImages;
+            galleryOverlay.dataset.singleImage = 'true';
+            if (galleryPrevBtn) galleryPrevBtn.style.display = 'none';
+            if (galleryNextBtn) galleryNextBtn.style.display = 'none';
+        }
     }
 
-    function getTopicDetailsFromRow(rowEl) { const l = rowEl?.querySelector(SELECTORS.topicLink), av = rowEl?.querySelector(SELECTORS.avatarImage); let uN = 'User'; if (av?.title) { const p = av.title.split(' - '); if (p.length>0 && p[0].trim()) uN = p[0].trim();} const t = l ? l.textContent.trim() : 'Unknown Topic'; return { title: t, username: uN, linkElement: l }; }
+    function getTopicDetailsFromRow(rowEl) {
+        const linkElement = rowEl?.querySelector(SELECTORS.topicLink);
+        const avatarImage = rowEl?.querySelector(SELECTORS.avatarImage);
+        const tagsContainer = rowEl?.querySelector(SELECTORS.topicTagsContainer);
+
+        let username = 'User';
+        if (avatarImage?.title) {
+            const parts = avatarImage.title.split(' - ');
+            if (parts.length > 0 && parts[0].trim()) {
+                username = parts[0].trim();
+            }
+        }
+
+        const title = linkElement ? linkElement.textContent.trim() : 'Unknown Topic';
+        const tags = tagsContainer ? Array.from(tagsContainer.querySelectorAll('.discourse-tag')).map(tag => tag.textContent.trim()).join(', ') : '';
+
+        return { title, username, tags, linkElement };
+    }
 
     function createThumbnailContainer(topicIdKey, topicUrl, imageUrl) {
-        const c = document.createElement('div'); c.className = CSS_CLASSES.topicPreviewContainer; c.title = UI_TEXTS.galleryTitle; c.dataset.topicIdKey = topicIdKey; c.dataset.clickable = 'true';
-        const th = document.createElement('img'); th.src = imageUrl; th.loading = 'lazy'; th.alt = UI_TEXTS.thumbnailAlt; th.className = CSS_CLASSES.topicPreviewThumbnail;
-        th.onerror = function() { logWarn('Thumbnail Load Err',`${this.src} for ${topicIdKey}`); if(c.parentNode?.contains(c)){const r=c.closest(SELECTORS.topicRow); c.parentNode.removeChild(c); if(r){const{linkElement:l}=getTopicDetailsFromRow(r); if(l&&!r.querySelector(`.${CSS_CLASSES.topicPreviewContainer}`)){addPlaceholder(r,l,UI_TEXTS.placeholderSymbolError,UI_TEXTS.placeholderError,topicIdKey,topicUrl);}}}};
+        const c = document.createElement('div');
+        c.className = CSS_CLASSES.topicPreviewContainer;
+        c.title = UI_TEXTS.galleryTitle;
+        c.dataset.topicIdKey = topicIdKey;
+        c.dataset.clickable = 'true';
+
+        const th = document.createElement('img');
+        th.src = imageUrl;
+        th.loading = 'lazy';
+        th.alt = UI_TEXTS.thumbnailAlt;
+        th.className = CSS_CLASSES.topicPreviewThumbnail;
+        th.onerror = function() {
+            logWarn('Thumbnail Load Err', `${this.src} for ${topicIdKey}`);
+            if (c.parentNode?.contains(c)) {
+                const r = c.closest(SELECTORS.topicRow);
+                c.parentNode.removeChild(c);
+                if (r) {
+                    const { linkElement: l } = getTopicDetailsFromRow(r);
+                    if (l && !r.querySelector(`.${CSS_CLASSES.topicPreviewContainer}`)) {
+                        addPlaceholder(r, l, UI_TEXTS.placeholderSymbolError, UI_TEXTS.placeholderError, topicIdKey, topicUrl);
+                    }
+                }
+            }
+        };
+
         c.appendChild(th);
-        c.addEventListener('click', (e) => { const r = c.closest(SELECTORS.topicRow); if (!r) { openGalleryForTopic(e, topicIdKey, topicUrl); return; } const {title,username}=getTopicDetailsFromRow(r); openGalleryForTopic(e, topicIdKey, topicUrl, title, username); });
+        c.addEventListener('click', (e) => {
+            const r = c.closest(SELECTORS.topicRow);
+            if (!r) {
+                openGalleryForTopic(e, topicIdKey, topicUrl);
+                return;
+            }
+            const { title, username, tags } = getTopicDetailsFromRow(r);
+            openGalleryForTopic(e, topicIdKey, topicUrl, title, username, tags);
+        });
         return c;
     }
 
