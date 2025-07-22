@@ -27,6 +27,7 @@
         galleryImageLink: 'a.lightbox img',
         galleryImageFallback: 'img',
         firstPostCookedContent: '.post-stream .topic-post:first-child .cooked',
+        topicActions: '.topic-actions .d-button-group', // Target for the new button
     };
 
     const CSS_CLASSES = {
@@ -88,6 +89,7 @@
     function logError(context, ...args) { console.error(`[GalleryPreview ${SCRIPT_VERSION} Error - ${context}]`, ...args); }
     function logWarn(context, ...args) { console.warn(`[GalleryPreview ${SCRIPT_VERSION} Warn - ${context}]`, ...args); }
     function logInfo(context, ...args) { console.log(`[GalleryPreview ${SCRIPT_VERSION} Info - ${context}]`, ...args); }
+    const isTopicPage = () => window.location.pathname.includes('/t/');
 
     function injectStyles() {
         const styleId = 'cg-gallery-dynamic-styles';
@@ -125,6 +127,7 @@
             .${CSS_CLASSES.galleryDownloadAll} { top: 15px; right: ${galleryDownloadAllBtnRightPos}px; font-size: ${galleryActionFontSize - 4}px; font-weight: normal; } /* Adjusted font size slightly for "⬇⬇" */
             .${CSS_CLASSES.galleryOverlay}[data-single-image="true"] .${CSS_CLASSES.galleryPrev},
             .${CSS_CLASSES.galleryOverlay}[data-single-image="true"] .${CSS_CLASSES.galleryNext} { display: none; }
+            .cg-topic-download-btn { margin-left: 10px; }
         `;
         try { const styleElement = document.createElement('style'); styleElement.id = styleId; styleElement.textContent = css; (document.head || document.documentElement).appendChild(styleElement); } catch (error) { logError('InjectStyles', 'Failed to inject CSS', error); }
     }
@@ -599,6 +602,9 @@
         if (!document.body) { logWarn('Init', 'document.body not found. Waiting...'); await new Promise(r => { const o=new MutationObserver(()=>{if(document.body){o.disconnect();r();}});o.observe(document.documentElement,{childList:true});}); logInfo('Init','document.body available.'); if (!galleryOverlay) createGalleryDOM(); }
         
         await processCurrentDOM(initialImageMap);
+        if (isTopicPage()) {
+            addTopicDownloadButton();
+        }
 
         const getTargetNode = () => document.querySelector(SELECTORS.mainOutlet) || document.body;
         let observedNodeReference = getTargetNode(); // Store a reference to the node we are observing
@@ -651,6 +657,9 @@
                 createGalleryDOM(); // Ensure gallery DOM is intact or recreated
                 document.querySelectorAll(`${SELECTORS.topicLink}[data-preview-processed="true"]`).forEach(link => link.removeAttribute('data-preview-processed'));
                 processCurrentDOM(initialImageMap).catch(e => logError('Observer', 'Error re-processing DOM', e));
+                if (isTopicPage()) {
+                    addTopicDownloadButton();
+                }
             }
 
             let linksToAdd = new Set();
@@ -683,6 +692,59 @@
             }, 1000);
         }
         logInfo('Init', `Extension v${SCRIPT_VERSION} init complete.`);
+    }
+
+    function addTopicDownloadButton() {
+        if (document.querySelector('.cg-topic-download-btn')) {
+            return; // Button already exists
+        }
+
+        const targetArea = document.querySelector(SELECTORS.topicActions);
+        if (targetArea) {
+            const button = document.createElement('button');
+            button.className = 'btn btn-default cg-topic-download-btn';
+            button.innerHTML = `${UI_TEXTS.downloadAllButton} Baixar Tudo`;
+            button.title = UI_TEXTS.galleryDownloadAllButtonTitle;
+
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const topicUrl = window.location.href;
+                const topicIdKey = getTopicIdFromUrl(topicUrl);
+                if (!topicIdKey) {
+                    logError('TopicDownload', 'Could not get topic ID from URL.');
+                    button.textContent = 'Erro!';
+                    setTimeout(() => { button.innerHTML = `${UI_TEXTS.downloadAllButton} Baixar Tudo`; }, 2000);
+                    return;
+                }
+
+                // We need to populate activeGallery before calling downloadAllImages
+                const topicTitle = document.querySelector('.fancy-title')?.textContent.trim() || 'Topic';
+                const opUsername = document.querySelector('.topic-owner .username')?.textContent.trim() || 'User';
+
+                // Use the existing logic to open the gallery invisibly and populate images
+                await openGalleryForTopic(null, topicIdKey, topicUrl, topicTitle, opUsername);
+
+                // Now that activeGallery is populated, call the download function
+                if (activeGallery.images && activeGallery.images.length > 0) {
+                    downloadAllImages();
+                } else {
+                    logWarn('TopicDownload', 'No images found to download.');
+                    const originalText = button.innerHTML;
+                    button.textContent = 'Nenhuma imagem!';
+                    setTimeout(() => { button.innerHTML = originalText; }, 3000);
+                }
+
+                // Hide the gallery overlay which was opened by openGalleryForTopic
+                hideGallery();
+            });
+
+            targetArea.appendChild(button);
+            logInfo('addTopicDownloadButton', 'Download all button added to topic page.');
+        } else {
+            logWarn('addTopicDownloadButton', 'Could not find target area to inject button.');
+        }
     }
 
     try { run().catch(err => logError('Run Execution', 'Unhandled promise rejection in run():', err)); }
