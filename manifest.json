@@ -17,7 +17,8 @@
         "https://forum.candidgirls.io/unseen*",
         "https://forum.candidgirls.io/unread*",
         "https://forum.candidgirls.io/c/*",
-        "https://forum.candidgirls.io/search*"
+        "https://forum.candidgirls.io/search*",
+        "https://forum.candidgirls.io/t/*"
       ],
       "js": ["content_script.js"],
       "run_at": "document_idle"
